@@ -76,6 +76,19 @@ export function BookingDetailDialog({ booking }: { booking: BookingWithItems }) 
             <Info label="Email" value={booking.email} />
             <Info label="Contact #1" value={booking.contact_number_1} />
             <Info label="Contact #2" value={booking.contact_number_2} />
+            {booking.facebook_link ? (
+              <div>
+                <p className="text-xs text-muted-foreground">Facebook</p>
+                <a
+                  href={booking.facebook_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gold underline-offset-2 hover:underline"
+                >
+                  View Profile
+                </a>
+              </div>
+            ) : null}
             <Info label="Trip Type" value={booking.trip_type} className="capitalize" />
             <Info
               label="Rental Window"

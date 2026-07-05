@@ -91,6 +91,7 @@ export type Database = {
           deposit_paid: boolean
           email: string | null
           end_date: string
+          facebook_link: string | null
           full_name: string | null
           id: string
           id_document_1_path: string | null
@@ -122,6 +123,7 @@ export type Database = {
           deposit_paid?: boolean
           email?: string | null
           end_date: string
+          facebook_link?: string | null
           full_name?: string | null
           id?: string
           id_document_1_path?: string | null
@@ -153,6 +155,7 @@ export type Database = {
           deposit_paid?: boolean
           email?: string | null
           end_date?: string
+          facebook_link?: string | null
           full_name?: string | null
           id?: string
           id_document_1_path?: string | null

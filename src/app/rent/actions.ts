@@ -52,6 +52,7 @@ export async function submitRentalApplication(formData: FormData) {
   const contactNumber1 = requireString(formData, "contact_number_1");
   const contactNumber2 = optionalString(formData, "contact_number_2");
   const email = requireString(formData, "email");
+  const facebookLink = requireString(formData, "facebook_link");
   const tripType = requireString(formData, "trip_type") as TripType;
 
   const pickupRaw = requireString(formData, "pickup_at");
@@ -144,6 +145,7 @@ export async function submitRentalApplication(formData: FormData) {
       contact_number_1: contactNumber1,
       contact_number_2: contactNumber2,
       email,
+      facebook_link: facebookLink,
       trip_type: tripType,
       id_document_1_path: idDocument1Path,
       id_document_2_path: idDocument2Path,

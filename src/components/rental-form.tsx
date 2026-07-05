@@ -241,6 +241,16 @@ export function RentalForm({
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required placeholder="you@example.com" />
           </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="facebook_link">Facebook Profile Link</Label>
+            <Input
+              id="facebook_link"
+              name="facebook_link"
+              type="url"
+              required
+              placeholder="https://facebook.com/yourname"
+            />
+          </div>
         </CardContent>
       </Card>
 

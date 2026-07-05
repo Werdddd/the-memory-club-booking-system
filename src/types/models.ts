@@ -57,6 +57,7 @@ export type Booking = {
   contact_number_1: string | null;
   contact_number_2: string | null;
   email: string | null;
+  facebook_link: string | null;
   trip_type: TripType;
   id_document_1_path: string | null;
   id_document_2_path: string | null;

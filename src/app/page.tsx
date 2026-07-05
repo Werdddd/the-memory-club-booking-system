@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -185,6 +186,11 @@ export default async function Home() {
                           extendedDailyRate={item.extended_daily_rate}
                           className="text-base font-medium text-gold"
                         />
+                        {item.is_available && item.category === "camera" && (
+                          <Button asChild size="sm" className="w-full">
+                            <Link href={`/rent?camera=${item.id}`}>Rent Now</Link>
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -194,10 +200,10 @@ export default async function Home() {
               {equipment.length > 0 && (
                 <p className="mt-10 text-center text-sm text-muted-foreground">
                   Ready to reserve?{" "}
-                  <a href="#contact" className="text-gold underline underline-offset-4">
-                    Get in touch
-                  </a>{" "}
-                  and we&apos;ll set you up.
+                  <Link href="/rent" className="text-gold underline underline-offset-4">
+                    Fill out the rental form
+                  </Link>{" "}
+                  and our team will confirm your booking.
                 </p>
               )}
             </div>

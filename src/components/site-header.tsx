@@ -36,7 +36,7 @@ export function SiteHeader() {
         <div className="hidden items-center gap-2 md:flex">
           <ModeToggle />
           <Button asChild size="sm">
-            <a href="#catalog">Book Now</a>
+            <Link href="/rent">Book Now</Link>
           </Button>
         </div>
 

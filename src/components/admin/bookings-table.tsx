@@ -3,7 +3,8 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { formatCurrency } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -19,10 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { BookingDetailDialog } from "@/components/admin/booking-detail-dialog";
 import { updateBookingStatus, setDepositPaid } from "@/app/admin/bookings/actions";
-import type { Booking, BookingStatus } from "@/types/models";
+import type { BookingStatus, BookingWithItems } from "@/types/models";
 
 const STATUSES: BookingStatus[] = [
   "pending",
@@ -32,21 +33,45 @@ const STATUSES: BookingStatus[] = [
   "cancelled",
 ];
 
-const STATUS_VARIANT: Record<BookingStatus, "default" | "secondary" | "destructive"> = {
-  pending: "secondary",
-  confirmed: "default",
-  ongoing: "default",
-  completed: "secondary",
-  cancelled: "destructive",
+const STATUS_META: Record<BookingStatus, { label: string; dot: string; text: string }> = {
+  pending: {
+    label: "Pending",
+    dot: "bg-amber-500",
+    text: "text-amber-700 dark:text-amber-400",
+  },
+  confirmed: {
+    label: "Confirmed",
+    dot: "bg-blue-500",
+    text: "text-blue-700 dark:text-blue-400",
+  },
+  ongoing: {
+    label: "Ongoing",
+    dot: "bg-violet-500",
+    text: "text-violet-700 dark:text-violet-400",
+  },
+  completed: {
+    label: "Completed",
+    dot: "bg-emerald-500",
+    text: "text-emerald-700 dark:text-emerald-400",
+  },
+  cancelled: {
+    label: "Cancelled",
+    dot: "bg-destructive",
+    text: "text-destructive",
+  },
 };
 
-export function BookingsTable({ bookings }: { bookings: Booking[] }) {
+function StatusDot({ className }: { className?: string }) {
+  return <span className={cn("size-1.5 shrink-0 rounded-full", className)} />;
+}
+
+function StatusSelect({ booking }: { booking: BookingWithItems }) {
   const [isPending, startTransition] = useTransition();
 
-  function handleStatusChange(id: string, status: BookingStatus) {
+  function handleChange(status: BookingStatus) {
     startTransition(async () => {
       try {
-        await updateBookingStatus(id, status);
+        await updateBookingStatus(booking.id, status);
         toast.success("Booking status updated.");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Update failed.");
@@ -54,16 +79,51 @@ export function BookingsTable({ bookings }: { bookings: Booking[] }) {
     });
   }
 
-  function handleDepositToggle(id: string, next: boolean) {
+  const meta = STATUS_META[booking.status];
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        value={booking.status}
+        onValueChange={(v) => handleChange(v as BookingStatus)}
+        disabled={isPending}
+      >
+        <SelectTrigger size="sm" className={cn("w-36 font-medium", meta.text)}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              <StatusDot className={STATUS_META[s].dot} />
+              {STATUS_META[s].label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {isPending && <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />}
+    </div>
+  );
+}
+
+function DepositSwitch({ booking }: { booking: BookingWithItems }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleToggle(next: boolean) {
     startTransition(async () => {
       try {
-        await setDepositPaid(id, next);
+        await setDepositPaid(booking.id, next);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Update failed.");
       }
     });
   }
 
+  return (
+    <Switch checked={booking.deposit_paid} disabled={isPending} onCheckedChange={handleToggle} />
+  );
+}
+
+export function BookingsTable({ bookings }: { bookings: BookingWithItems[] }) {
   if (bookings.length === 0) {
     return (
       <p className="rounded-md border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
@@ -82,6 +142,7 @@ export function BookingsTable({ bookings }: { bookings: Booking[] }) {
             <TableHead>Total</TableHead>
             <TableHead>Deposit Paid</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="text-right">Details</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,11 +150,11 @@ export function BookingsTable({ bookings }: { bookings: Booking[] }) {
             <TableRow key={booking.id}>
               <TableCell>
                 <div className="font-medium">
-                  {booking.profiles?.full_name ?? "Unknown customer"}
+                  {booking.full_name ?? booking.profiles?.full_name ?? "Unknown customer"}
                 </div>
-                {booking.profiles?.phone && (
+                {(booking.contact_number_1 ?? booking.profiles?.phone) && (
                   <div className="text-xs text-muted-foreground">
-                    {booking.profiles.phone}
+                    {booking.contact_number_1 ?? booking.profiles?.phone}
                   </div>
                 )}
               </TableCell>
@@ -103,35 +164,13 @@ export function BookingsTable({ bookings }: { bookings: Booking[] }) {
               </TableCell>
               <TableCell>{formatCurrency(Number(booking.total_amount))}</TableCell>
               <TableCell>
-                <Switch
-                  checked={booking.deposit_paid}
-                  disabled={isPending}
-                  onCheckedChange={(next) => handleDepositToggle(booking.id, next)}
-                />
+                <DepositSwitch booking={booking} />
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
-                  <Badge variant={STATUS_VARIANT[booking.status]} className="capitalize">
-                    {booking.status}
-                  </Badge>
-                  <Select
-                    value={booking.status}
-                    onValueChange={(v) =>
-                      handleStatusChange(booking.id, v as BookingStatus)
-                    }
-                  >
-                    <SelectTrigger size="sm" className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.map((s) => (
-                        <SelectItem key={s} value={s} className="capitalize">
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <StatusSelect booking={booking} />
+              </TableCell>
+              <TableCell className="text-right">
+                <BookingDetailDialog booking={booking} />
               </TableCell>
             </TableRow>
           ))}

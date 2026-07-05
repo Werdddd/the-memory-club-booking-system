@@ -28,3 +28,13 @@ export async function setDepositPaid(id: string, depositPaid: boolean) {
 
   revalidatePath("/admin/bookings");
 }
+
+export async function getBookingDocumentUrl(path: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage
+    .from("booking-documents")
+    .createSignedUrl(path, 60 * 10);
+
+  if (error) return null;
+  return data.signedUrl;
+}

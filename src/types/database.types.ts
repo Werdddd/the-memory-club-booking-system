@@ -83,45 +83,96 @@ export type Database = {
       }
       bookings: {
         Row: {
+          address: string | null
+          contact_number_1: string | null
+          contact_number_2: string | null
           created_at: string
-          customer_id: string
+          customer_id: string | null
           deposit_paid: boolean
+          email: string | null
           end_date: string
+          full_name: string | null
           id: string
+          id_document_1_path: string | null
+          id_document_2_path: string | null
           notes: string | null
           pickup_time: string | null
+          proof_of_billing_path: string | null
+          proof_of_payment_path: string | null
           return_time: string | null
+          selfie_with_id_path: string | null
+          signature_method:
+            | Database["public"]["Enums"]["signature_method"]
+            | null
+          signature_path: string | null
+          signature_text: string | null
           start_date: string
           status: Database["public"]["Enums"]["booking_status"]
+          terms_accepted: boolean
           total_amount: number
+          trip_type: Database["public"]["Enums"]["trip_type"]
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          contact_number_1?: string | null
+          contact_number_2?: string | null
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           deposit_paid?: boolean
+          email?: string | null
           end_date: string
+          full_name?: string | null
           id?: string
+          id_document_1_path?: string | null
+          id_document_2_path?: string | null
           notes?: string | null
           pickup_time?: string | null
+          proof_of_billing_path?: string | null
+          proof_of_payment_path?: string | null
           return_time?: string | null
+          selfie_with_id_path?: string | null
+          signature_method?:
+            | Database["public"]["Enums"]["signature_method"]
+            | null
+          signature_path?: string | null
+          signature_text?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["booking_status"]
+          terms_accepted?: boolean
           total_amount?: number
+          trip_type?: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          contact_number_1?: string | null
+          contact_number_2?: string | null
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           deposit_paid?: boolean
+          email?: string | null
           end_date?: string
+          full_name?: string | null
           id?: string
+          id_document_1_path?: string | null
+          id_document_2_path?: string | null
           notes?: string | null
           pickup_time?: string | null
+          proof_of_billing_path?: string | null
+          proof_of_payment_path?: string | null
           return_time?: string | null
+          selfie_with_id_path?: string | null
+          signature_method?:
+            | Database["public"]["Enums"]["signature_method"]
+            | null
+          signature_path?: string | null
+          signature_text?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          terms_accepted?: boolean
           total_amount?: number
+          trip_type?: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
         }
         Relationships: [
@@ -188,6 +239,57 @@ export type Database = {
         }
         Relationships: []
       }
+      equipment_addons: {
+        Row: {
+          addon_id: string
+          created_at: string
+          equipment_id: string
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          equipment_id: string
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          equipment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_addons_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_settings: {
+        Row: {
+          id: number
+          qr_code_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          qr_code_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          qr_code_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -220,6 +322,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      booking_is_guest: {
+        Args: { target_booking_id: string }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
@@ -242,6 +348,8 @@ export type Database = {
         | "good"
         | "fair"
         | "needs_repair"
+      signature_method: "typed" | "drawn"
+      trip_type: "local" | "international"
       user_role: "admin" | "customer"
     }
     CompositeTypes: {
@@ -389,6 +497,8 @@ export const Constants = {
         "other",
       ],
       equipment_condition: ["new", "excellent", "good", "fair", "needs_repair"],
+      signature_method: ["typed", "drawn"],
+      trip_type: ["local", "international"],
       user_role: ["admin", "customer"],
     },
   },

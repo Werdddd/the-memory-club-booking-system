@@ -3,13 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Camera, CalendarRange, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  Camera,
+  CalendarRange,
+  Users,
+  PackagePlus,
+  Settings,
+} from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/equipment", label: "Equipment", icon: Camera },
+  { href: "/admin/addons", label: "Add-Ons", icon: PackagePlus },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarRange },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function SidebarNav({ orientation = "vertical" }: { orientation?: "vertical" | "horizontal" }) {

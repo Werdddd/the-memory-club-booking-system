@@ -1,14 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { BookingsTable } from "@/components/admin/bookings-table";
-import type { Booking } from "@/types/models";
+import type { BookingWithItems } from "@/types/models";
 
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("bookings")
-    .select("*, profiles(full_name, phone)")
+    .select(
+      "*, profiles(full_name, phone), booking_items(id, booking_id, equipment_id, quantity, rate_at_booking, equipment(id, name, category))"
+    )
     .order("created_at", { ascending: false })
-    .returns<Booking[]>();
+    .returns<BookingWithItems[]>();
 
   return (
     <div>

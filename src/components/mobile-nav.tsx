@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -37,13 +38,13 @@ export function MobileNav() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="#catalog"
+            <Link
+              href="/rent"
               onClick={() => setOpen(false)}
               className="mt-2 rounded-md bg-primary px-2 py-2 text-center text-sm font-medium text-primary-foreground"
             >
               Book Now
-            </a>
+            </Link>
           </nav>
         </div>
       )}

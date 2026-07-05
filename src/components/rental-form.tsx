@@ -156,6 +156,9 @@ export function RentalForm({
     return selectedItems.reduce((sum, item) => sum + tieredDailyRate(item, days), 0);
   }, [selectedItems, days]);
 
+  const downPayment = totalEstimate / 2;
+  const balanceDue = totalEstimate - downPayment;
+
   function handleSubmit(formData: FormData) {
     if (selectedCameraIds.size === 0) {
       toast.error("Please select at least one camera.");
@@ -237,68 +240,6 @@ export function RentalForm({
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required placeholder="you@example.com" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Rental period + trip type */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarCheck2 className="size-4 text-gold" /> Rental Period & Trip
-          </CardTitle>
-          <CardDescription>When you&apos;ll pick up and return the gear.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <Label>Rental Dates</Label>
-            <EquipmentAvailabilityRangePicker
-              bookedRangesByEquipment={bookedRangesByEquipment}
-              selectedEquipmentIds={selectedEquipmentIds}
-              value={dateRange}
-              onChange={setDateRange}
-            />
-            <input type="hidden" name="pickup_at" value={pickupAt} />
-            <input type="hidden" name="return_at" value={returnAt} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pickup_time">Pickup Time</Label>
-            <Input
-              id="pickup_time"
-              type="time"
-              value={pickupTime}
-              onChange={(e) => setPickupTime(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="return_time">Return Time</Label>
-            <Input
-              id="return_time"
-              type="time"
-              value={returnTime}
-              onChange={(e) => setReturnTime(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label>Trip Type</Label>
-            <RadioGroup
-              value={tripType}
-              onValueChange={(v) => setTripType(v as TripType)}
-              className="grid-flow-col justify-start gap-6"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="local" id="trip-local" />
-                <Label htmlFor="trip-local" className="cursor-pointer font-normal">
-                  Local Trip
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="international" id="trip-international" />
-                <Label htmlFor="trip-international" className="cursor-pointer font-normal">
-                  International Trip
-                </Label>
-              </div>
-            </RadioGroup>
           </div>
         </CardContent>
       </Card>
@@ -400,6 +341,68 @@ export function RentalForm({
         </CardContent>
       </Card>
 
+      {/* Rental period + trip type */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarCheck2 className="size-4 text-gold" /> Rental Period & Trip
+          </CardTitle>
+          <CardDescription>When you&apos;ll pick up and return the gear.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Rental Dates</Label>
+            <EquipmentAvailabilityRangePicker
+              bookedRangesByEquipment={bookedRangesByEquipment}
+              selectedEquipmentIds={selectedEquipmentIds}
+              value={dateRange}
+              onChange={setDateRange}
+            />
+            <input type="hidden" name="pickup_at" value={pickupAt} />
+            <input type="hidden" name="return_at" value={returnAt} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pickup_time">Pickup Time</Label>
+            <Input
+              id="pickup_time"
+              type="time"
+              value={pickupTime}
+              onChange={(e) => setPickupTime(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="return_time">Return Time</Label>
+            <Input
+              id="return_time"
+              type="time"
+              value={returnTime}
+              onChange={(e) => setReturnTime(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Trip Type</Label>
+            <RadioGroup
+              value={tripType}
+              onValueChange={(v) => setTripType(v as TripType)}
+              className="grid-flow-col justify-start gap-6"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="local" id="trip-local" />
+                <Label htmlFor="trip-local" className="cursor-pointer font-normal">
+                  Local Trip
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="international" id="trip-international" />
+                <Label htmlFor="trip-international" className="cursor-pointer font-normal">
+                  International Trip
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Verification */}
       <Card>
         <CardHeader>
@@ -438,10 +441,32 @@ export function RentalForm({
             <CreditCard className="size-4 text-gold" /> Payment
           </CardTitle>
           <CardDescription>
-            Scan the QR code to pay, then upload your proof of payment.
+            A 50% down payment is required to confirm your booking. Scan the
+            QR code to pay, then upload your proof of payment.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-1.5 rounded-md border border-gold/40 bg-gold/5 p-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Total Rental Cost</span>
+              <span className="font-medium">{formatCurrency(totalEstimate)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Down Payment (50%) — Due Now</span>
+              <span className="font-heading text-base font-medium text-gold">
+                {formatCurrency(downPayment)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Balance — Due at Pickup</span>
+              <span className="font-medium">{formatCurrency(balanceDue)}</span>
+            </div>
+            {days === 0 && (
+              <p className="pt-1 text-xs text-muted-foreground">
+                Select your equipment and rental dates above to calculate your total.
+              </p>
+            )}
+          </div>
           {qrCodeUrl ? (
             <Image
               src={qrCodeUrl}

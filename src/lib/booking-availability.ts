@@ -1,10 +1,24 @@
-import { dateRangesOverlap, toDateOnlyString } from "@/lib/dates";
+import { dateRangesOverlap, parseDateOnly, toDateOnlyString } from "@/lib/dates";
 
 export type EquipmentBookedRow = {
   equipment_id: string;
   start_date: string;
   end_date: string;
 };
+
+/**
+ * A booking's `end_date` is the return day, not another full day of use — the
+ * equipment comes back that morning and is free for a same-day handoff to the
+ * next renter. So the day actually blocked on the calendar is the one before
+ * the return date, not the return date itself. A same-day booking (pickup and
+ * return on the same calendar date) still blocks that one day.
+ */
+export function blockedEndDate(startDate: string, endDate: string): string {
+  if (endDate <= startDate) return startDate;
+  const returnDate = parseDateOnly(endDate);
+  returnDate.setDate(returnDate.getDate() - 1);
+  return toDateOnlyString(returnDate);
+}
 
 export function groupBookedRowsByEquipment(
   rows: EquipmentBookedRow[]
@@ -13,7 +27,7 @@ export function groupBookedRowsByEquipment(
   for (const row of rows) {
     (byEquipment[row.equipment_id] ??= []).push({
       start_date: row.start_date,
-      end_date: row.end_date,
+      end_date: blockedEndDate(row.start_date, row.end_date),
     });
   }
   return byEquipment;

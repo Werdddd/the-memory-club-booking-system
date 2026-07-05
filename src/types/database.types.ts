@@ -326,6 +326,14 @@ export type Database = {
         Args: { target_booking_id: string }
         Returns: boolean
       }
+      get_confirmed_equipment_bookings: {
+        Args: never
+        Returns: {
+          equipment_id: string
+          start_date: string
+          end_date: string
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {

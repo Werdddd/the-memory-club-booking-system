@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
+import type { DateRange } from "react-day-picker";
 import {
   CalendarCheck2,
   Camera,
@@ -19,9 +20,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SignaturePad } from "@/components/signature-pad";
+import { EquipmentAvailabilityRangePicker } from "@/components/equipment-availability-range-picker";
 import { submitRentalApplication } from "@/app/rent/actions";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
+import { combineDateAndTime, parseDateOnly } from "@/lib/dates";
+import { bookedRangesForEquipment, dateRangeOverlapsAny } from "@/lib/booking-availability";
 import type { TripType } from "@/types/models";
 
 export type RentalEquipmentOption = {
@@ -40,7 +44,11 @@ type RentalFormProps = {
   addonMap: Record<string, string[]>;
   qrCodeUrl: string | null;
   preselectedCameraId?: string;
+  preselectedDate?: string;
+  bookedRangesByEquipment: Record<string, { start_date: string; end_date: string }[]>;
 };
+
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function toggleInSet<T>(set: Set<T>, value: T): Set<T> {
   const next = new Set(set);
@@ -55,13 +63,20 @@ export function RentalForm({
   addonMap,
   qrCodeUrl,
   preselectedCameraId,
+  preselectedDate,
+  bookedRangesByEquipment,
 }: RentalFormProps) {
   const [selectedCameraIds, setSelectedCameraIds] = useState<Set<string>>(
     () => new Set(preselectedCameraId ? [preselectedCameraId] : [])
   );
   const [selectedAddonIds, setSelectedAddonIds] = useState<Set<string>>(new Set());
-  const [pickupAt, setPickupAt] = useState("");
-  const [returnAt, setReturnAt] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    if (!preselectedDate || !DATE_ONLY_PATTERN.test(preselectedDate)) return undefined;
+    const date = parseDateOnly(preselectedDate);
+    return { from: date, to: date };
+  });
+  const [pickupTime, setPickupTime] = useState("09:00");
+  const [returnTime, setReturnTime] = useState("18:00");
   const [tripType, setTripType] = useState<TripType>("local");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -85,6 +100,43 @@ export function RentalForm({
     [selectedAddonIds, availableAddonIds]
   );
 
+  const selectedEquipmentIds = useMemo(
+    () => [...selectedCameraIds, ...effectiveAddonIds],
+    [selectedCameraIds, effectiveAddonIds]
+  );
+
+  const pickupAt = useMemo(
+    () => combineDateAndTime(dateRange?.from, pickupTime),
+    [dateRange, pickupTime]
+  );
+  const returnAt = useMemo(
+    () => combineDateAndTime(dateRange?.to ?? dateRange?.from, returnTime),
+    [dateRange, returnTime]
+  );
+
+  // If the customer picks dates, then adds a camera/add-on that's already
+  // booked on those dates, clear the now-invalid selection. `excludeDisabled`
+  // on the calendar only guards live drag-selection, not selection changes
+  // that happen after the fact.
+  useEffect(() => {
+    const booked = bookedRangesForEquipment(bookedRangesByEquipment, selectedEquipmentIds);
+    let didClear = false;
+    setDateRange((current) => {
+      if (!current?.from) return current;
+      if (dateRangeOverlapsAny(current.from, current.to, booked)) {
+        didClear = true;
+        return undefined;
+      }
+      return current;
+    });
+    if (didClear) {
+      toast.error(
+        "One or more selected cameras are already booked on your chosen dates. Please pick new dates."
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEquipmentIds, bookedRangesByEquipment]);
+
   const days = useMemo(() => {
     if (!pickupAt || !returnAt) return 0;
     const p = new Date(pickupAt);
@@ -107,6 +159,10 @@ export function RentalForm({
   function handleSubmit(formData: FormData) {
     if (selectedCameraIds.size === 0) {
       toast.error("Please select at least one camera.");
+      return;
+    }
+    if (!dateRange?.from) {
+      toast.error("Please select your rental dates.");
       return;
     }
     if (!termsAccepted) {
@@ -141,7 +197,7 @@ export function RentalForm({
       <Card className="mx-auto max-w-lg text-center">
         <CardContent className="flex flex-col items-center gap-3 py-10">
           <CheckCircle2 className="size-10 text-gold" strokeWidth={1.5} />
-          <h2 className="font-heading text-xl font-medium">Application Submitted</h2>
+          <h2 className="font-heading text-xl font-medium">Booking Submitted</h2>
           <p className="text-sm text-muted-foreground">
             Thanks — we&apos;ve received your rental application. Our team will
             verify your details and reach out to confirm your booking shortly.
@@ -194,26 +250,33 @@ export function RentalForm({
           <CardDescription>When you&apos;ll pick up and return the gear.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Rental Dates</Label>
+            <EquipmentAvailabilityRangePicker
+              bookedRangesByEquipment={bookedRangesByEquipment}
+              selectedEquipmentIds={selectedEquipmentIds}
+              value={dateRange}
+              onChange={setDateRange}
+            />
+            <input type="hidden" name="pickup_at" value={pickupAt} />
+            <input type="hidden" name="return_at" value={returnAt} />
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="pickup_at">Date & Time of Renting</Label>
+            <Label htmlFor="pickup_time">Pickup Time</Label>
             <Input
-              id="pickup_at"
-              name="pickup_at"
-              type="datetime-local"
-              required
-              value={pickupAt}
-              onChange={(e) => setPickupAt(e.target.value)}
+              id="pickup_time"
+              type="time"
+              value={pickupTime}
+              onChange={(e) => setPickupTime(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="return_at">Date & Time of Return</Label>
+            <Label htmlFor="return_time">Return Time</Label>
             <Input
-              id="return_at"
-              name="return_at"
-              type="datetime-local"
-              required
-              value={returnAt}
-              onChange={(e) => setReturnAt(e.target.value)}
+              id="return_time"
+              type="time"
+              value={returnTime}
+              onChange={(e) => setReturnTime(e.target.value)}
             />
           </div>
           <div className="space-y-2 sm:col-span-2">

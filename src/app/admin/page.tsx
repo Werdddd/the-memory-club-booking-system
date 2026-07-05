@@ -2,11 +2,21 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, CalendarClock, CheckCircle2, Banknote } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import {
+  BookingAvailabilityCalendar,
+  type EquipmentBookingRange,
+} from "@/components/booking-availability-calendar";
+
+type ConfirmedBookingRow = {
+  start_date: string;
+  end_date: string;
+  booking_items: { equipment_id: string; equipment: { name: string } | null }[];
+};
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  const [equipmentCount, pendingBookings, activeBookings, revenue] =
+  const [equipmentCount, pendingBookings, activeBookings, revenue, confirmedBookings] =
     await Promise.all([
       supabase.from("equipment").select("id", { count: "exact", head: true }),
       supabase
@@ -21,11 +31,27 @@ export default async function AdminDashboardPage() {
         .from("bookings")
         .select("total_amount")
         .eq("status", "completed"),
+      supabase
+        .from("bookings")
+        .select("start_date, end_date, booking_items(equipment_id, equipment(name))")
+        .eq("status", "confirmed")
+        .order("start_date")
+        .returns<ConfirmedBookingRow[]>(),
     ]);
 
   const totalRevenue = (revenue.data ?? []).reduce(
     (sum, b) => sum + Number(b.total_amount ?? 0),
     0
+  );
+
+  const bookingRanges: EquipmentBookingRange[] = (confirmedBookings.data ?? []).flatMap(
+    (booking) =>
+      booking.booking_items.map((item) => ({
+        equipment_id: item.equipment_id,
+        equipment_name: item.equipment?.name ?? "Unknown equipment",
+        start_date: booking.start_date,
+        end_date: booking.end_date,
+      }))
   );
 
   const stats = [
@@ -73,6 +99,18 @@ export default async function AdminDashboardPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Booking Calendar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BookingAvailabilityCalendar
+            ranges={bookingRanges}
+            emptyMessage="No confirmed bookings yet."
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

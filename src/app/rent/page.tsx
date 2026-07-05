@@ -2,16 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { RentalForm, type RentalEquipmentOption } from "@/components/rental-form";
+import { groupBookedRowsByEquipment } from "@/lib/booking-availability";
 
 export default async function RentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ camera?: string }>;
+  searchParams: Promise<{ camera?: string; date?: string }>;
 }) {
-  const { camera } = await searchParams;
+  const { camera, date } = await searchParams;
   const supabase = await createClient();
 
-  const [equipmentRes, addonsRes, paymentRes] = await Promise.all([
+  const [equipmentRes, addonsRes, paymentRes, bookedRes] = await Promise.all([
     supabase
       .from("equipment")
       .select(
@@ -21,7 +22,10 @@ export default async function RentPage({
       .order("name"),
     supabase.from("equipment_addons").select("equipment_id, addon_id"),
     supabase.from("payment_settings").select("qr_code_url").eq("id", 1).single(),
+    supabase.rpc("get_confirmed_equipment_bookings"),
   ]);
+
+  const bookedRangesByEquipment = groupBookedRowsByEquipment(bookedRes.data ?? []);
 
   const equipment = equipmentRes.data ?? [];
   const cameras: RentalEquipmentOption[] = equipment
@@ -73,6 +77,8 @@ export default async function RentPage({
             addonMap={addonMap}
             qrCodeUrl={paymentRes.data?.qr_code_url ?? null}
             preselectedCameraId={camera}
+            preselectedDate={date}
+            bookedRangesByEquipment={bookedRangesByEquipment}
           />
         </div>
       </main>

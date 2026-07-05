@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
+import { toDateOnlyString } from "@/lib/dates";
 import type { TripType, SignatureMethod } from "@/types/models";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -121,8 +122,6 @@ export async function submitRentalApplication(formData: FormData) {
       ? await uploadDocument(supabase, folder, formData, "signature_file", true)
       : null;
 
-  const toDateOnly = (d: Date) => d.toISOString().slice(0, 10);
-
   // Guest submissions have no SELECT grant under RLS (only admins can read
   // them back), so the id is minted here rather than via .select() after
   // insert, and reused directly for the booking_items rows below.
@@ -134,8 +133,8 @@ export async function submitRentalApplication(formData: FormData) {
       id: bookingId,
       customer_id: null,
       status: "pending",
-      start_date: toDateOnly(pickupAt),
-      end_date: toDateOnly(returnAt),
+      start_date: toDateOnlyString(pickupAt),
+      end_date: toDateOnlyString(returnAt),
       pickup_time: pickupAt.toISOString(),
       return_time: returnAt.toISOString(),
       total_amount: totalAmount,

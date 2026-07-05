@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Camera,
   CalendarRange,
-  Users,
   PackagePlus,
   Settings,
 } from "lucide-react";
@@ -17,7 +16,6 @@ const NAV_ITEMS = [
   { href: "/admin/equipment", label: "Equipment", icon: Camera },
   { href: "/admin/addons", label: "Add-Ons", icon: PackagePlus },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarRange },
-  { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

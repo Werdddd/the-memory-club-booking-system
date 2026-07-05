@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PricingTiers } from "@/components/pricing-tiers";
+import {
+  BookingAvailabilityCalendar,
+  type EquipmentBookingRange,
+} from "@/components/booking-availability-calendar";
 import { Camera, CalendarCheck, PackageCheck, Sparkles } from "lucide-react";
 
 type Equipment = {
@@ -51,6 +55,28 @@ async function getEquipment(): Promise<{ data: Equipment[]; error: string | null
   }
 }
 
+async function getConfirmedBookingRanges(
+  equipment: Equipment[]
+): Promise<EquipmentBookingRange[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("get_confirmed_equipment_bookings");
+    if (error || !data) return [];
+
+    const nameById = new Map(equipment.map((e) => [e.id, e.name]));
+    return data
+      .filter((row) => nameById.has(row.equipment_id))
+      .map((row) => ({
+        equipment_id: row.equipment_id,
+        equipment_name: nameById.get(row.equipment_id)!,
+        start_date: row.start_date,
+        end_date: row.end_date,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 const STEPS = [
   {
     icon: Camera,
@@ -71,6 +97,7 @@ const STEPS = [
 
 export default async function Home() {
   const { data: equipment, error } = await getEquipment();
+  const bookingRanges = await getConfirmedBookingRanges(equipment);
 
   return (
     <div className="flex flex-1 flex-col bg-background">
@@ -206,6 +233,25 @@ export default async function Home() {
                   and our team will confirm your booking.
                 </p>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* Availability */}
+        <section id="availability" className="border-t border-border/50">
+          <div className="mx-auto max-w-6xl px-6 py-24">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-medium tracking-tight sm:text-4xl">
+                Check Availability
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Dates already reserved show up here so you can plan your
+                shoot around them.
+              </p>
+            </div>
+
+            <div className="mt-14">
+              <BookingAvailabilityCalendar ranges={bookingRanges} />
             </div>
           </div>
         </section>

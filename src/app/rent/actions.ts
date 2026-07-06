@@ -17,8 +17,6 @@ function formatAgreementTime(date: Date): string {
   return date.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
-
 function requireString(formData: FormData, field: string): string {
   const value = String(formData.get(field) ?? "").trim();
   if (!value) throw new Error(`Missing required field: ${field.replace(/_/g, " ")}`);
@@ -28,31 +26,6 @@ function requireString(formData: FormData, field: string): string {
 function optionalString(formData: FormData, field: string): string | null {
   const value = String(formData.get(field) ?? "").trim();
   return value || null;
-}
-
-async function uploadDocument(
-  supabase: SupabaseServerClient,
-  folder: string,
-  formData: FormData,
-  field: string,
-  required: boolean
-): Promise<string | null> {
-  const file = formData.get(field);
-  if (!(file instanceof File) || file.size === 0) {
-    if (required) throw new Error(`Missing required file: ${field.replace(/_/g, " ")}`);
-    return null;
-  }
-
-  const ext = file.name.split(".").pop();
-  const path = `${folder}/${field}${ext ? `.${ext}` : ""}`;
-
-  const { error } = await supabase.storage
-    .from("booking-documents")
-    .upload(path, file, { contentType: file.type });
-
-  if (error) throw new Error(`Upload failed (${field}): ${error.message}`);
-
-  return path;
 }
 
 export async function submitRentalApplication(
@@ -133,38 +106,33 @@ async function submitRentalApplicationInner(
     0
   );
 
-  const folder = crypto.randomUUID();
-  const [
-    idDocument1Path,
-    idDocument2Path,
-    proofOfBillingPath,
-    selfieWithIdPath,
-    proofOfPaymentPath,
-  ] = await Promise.all([
-    uploadDocument(supabase, folder, formData, "id_document_1", true),
-    uploadDocument(supabase, folder, formData, "id_document_2", true),
-    uploadDocument(supabase, folder, formData, "proof_of_billing", true),
-    uploadDocument(supabase, folder, formData, "selfie_with_id", true),
-    uploadDocument(supabase, folder, formData, "proof_of_payment", true),
-  ]);
-
+  // Files are uploaded directly from the browser to Supabase Storage (see
+  // rental-form.tsx) so large multi-photo submissions never have to pass
+  // through this Server Action's request body; only the resulting paths
+  // (and the shared folder they were minted under) arrive here.
+  const folder = requireString(formData, "folder");
+  const idDocument1Path = requireString(formData, "id_document_1_path");
+  const idDocument2Path = requireString(formData, "id_document_2_path");
+  const proofOfBillingPath = requireString(formData, "proof_of_billing_path");
+  const selfieWithIdPath = requireString(formData, "selfie_with_id_path");
+  const proofOfPaymentPath = requireString(formData, "proof_of_payment_path");
   const signaturePath =
-    signatureMethod === "drawn"
-      ? await uploadDocument(supabase, folder, formData, "signature_file", true)
-      : null;
+    signatureMethod === "drawn" ? requireString(formData, "signature_path") : null;
 
   let signatureForPdf: { method: "typed"; text: string } | { method: "drawn"; dataUri: string };
   if (signatureMethod === "typed") {
     signatureForPdf = { method: "typed", text: signatureText! };
   } else {
-    const signatureFile = formData.get("signature_file");
-    if (!(signatureFile instanceof File) || signatureFile.size === 0) {
-      throw new Error("Please draw your signature.");
+    const { data: signatureBlob, error: signatureDownloadError } = await supabase.storage
+      .from("booking-documents")
+      .download(signaturePath!);
+    if (signatureDownloadError || !signatureBlob) {
+      throw new Error("Failed to read uploaded signature. Please try again.");
     }
-    const bytes = Buffer.from(await signatureFile.arrayBuffer());
+    const bytes = Buffer.from(await signatureBlob.arrayBuffer());
     signatureForPdf = {
       method: "drawn",
-      dataUri: `data:${signatureFile.type || "image/png"};base64,${bytes.toString("base64")}`,
+      dataUri: `data:${signatureBlob.type || "image/png"};base64,${bytes.toString("base64")}`,
     };
   }
 

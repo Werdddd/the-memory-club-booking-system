@@ -30,6 +30,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SignaturePad } from "@/components/signature-pad";
 import { EquipmentAvailabilityRangePicker } from "@/components/equipment-availability-range-picker";
 import { submitRentalApplication } from "@/app/rent/actions";
+import { createClient } from "@/lib/supabase/client";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import { combineDateAndTime, parseDateOnly } from "@/lib/dates";
@@ -69,6 +70,29 @@ function toggleInSet<T>(set: Set<T>, value: T): Set<T> {
   if (next.has(value)) next.delete(value);
   else next.add(value);
   return next;
+}
+
+// Uploaded directly from the browser to Supabase Storage (rather than
+// proxied through the Server Action) so multi-photo submissions never hit
+// Next.js's or the hosting platform's request body size limits.
+async function uploadBookingFile(
+  folder: string,
+  formData: FormData,
+  field: string,
+): Promise<string> {
+  const file = formData.get(field);
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error(`Missing required file: ${field.replace(/_/g, " ")}`);
+  }
+  const ext = file.name.split(".").pop();
+  const path = `${folder}/${field}${ext ? `.${ext}` : ""}`;
+  const { error } = await createClient()
+    .storage.from("booking-documents")
+    .upload(path, file, { contentType: file.type });
+  if (error) {
+    throw new Error(`Upload failed (${field.replace(/_/g, " ")}): ${error.message}`);
+  }
+  return path;
 }
 
 export function RentalForm({
@@ -264,6 +288,40 @@ export function RentalForm({
 
     startTransition(async () => {
       try {
+        const folder = crypto.randomUUID();
+        const [
+          idDocument1Path,
+          idDocument2Path,
+          proofOfBillingPath,
+          selfieWithIdPath,
+          proofOfPaymentPath,
+        ] = await Promise.all([
+          uploadBookingFile(folder, formData, "id_document_1"),
+          uploadBookingFile(folder, formData, "id_document_2"),
+          uploadBookingFile(folder, formData, "proof_of_billing"),
+          uploadBookingFile(folder, formData, "selfie_with_id"),
+          uploadBookingFile(folder, formData, "proof_of_payment"),
+        ]);
+        const signaturePath =
+          signatureMethod === "drawn"
+            ? await uploadBookingFile(folder, formData, "signature_file")
+            : null;
+
+        formData.delete("id_document_1");
+        formData.delete("id_document_2");
+        formData.delete("proof_of_billing");
+        formData.delete("selfie_with_id");
+        formData.delete("proof_of_payment");
+        formData.delete("signature_file");
+
+        formData.set("folder", folder);
+        formData.set("id_document_1_path", idDocument1Path);
+        formData.set("id_document_2_path", idDocument2Path);
+        formData.set("proof_of_billing_path", proofOfBillingPath);
+        formData.set("selfie_with_id_path", selfieWithIdPath);
+        formData.set("proof_of_payment_path", proofOfPaymentPath);
+        if (signaturePath) formData.set("signature_path", signaturePath);
+
         const result = await submitRentalApplication(formData);
         if ("error" in result) {
           toast.error(result.error);

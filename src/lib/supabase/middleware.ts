@@ -4,10 +4,17 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Bail out instead of throwing so a missing/misconfigured Supabase env var
+  // doesn't crash the middleware (and every route) on Vercel.
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return supabaseResponse;
+  }
+
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -22,16 +29,14 @@ export async function updateSession(request: NextRequest) {
           );
         },
       },
-    }
-  );
+    });
 
-  // Refreshes the auth token if expired. Required for Server Components,
-  // which cannot write cookies themselves. Swallow errors so a
-  // misconfigured/unreachable Supabase project doesn't take down every route.
-  try {
+    // Refreshes the auth token if expired. Required for Server Components,
+    // which cannot write cookies themselves.
     await supabase.auth.getUser();
   } catch {
-    // ignore
+    // Swallow errors so an unreachable/misconfigured Supabase project
+    // doesn't take down every route.
   }
 
   return supabaseResponse;

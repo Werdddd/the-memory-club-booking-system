@@ -28,7 +28,7 @@ import { rentalDays, tieredDailyRate } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import { combineDateAndTime, parseDateOnly } from "@/lib/dates";
 import { bookedRangesForEquipment, dateRangeOverlapsAny } from "@/lib/booking-availability";
-import type { TripType } from "@/types/models";
+import { getSecurityDeposit, type TripType } from "@/types/models";
 
 export type RentalEquipmentOption = {
   id: string;
@@ -168,6 +168,7 @@ export function RentalForm({
 
   const downPayment = totalEstimate / 2;
   const balanceDue = totalEstimate - downPayment;
+  const securityDeposit = getSecurityDeposit(tripType);
 
   const selectedCameraNames = cameras.filter((c) => selectedCameraIds.has(c.id)).map((c) => c.name);
   const selectedAddonNames = accessories.filter((a) => effectiveAddonIds.has(a.id)).map((a) => a.name);
@@ -554,6 +555,12 @@ export function RentalForm({
               <span className="text-muted-foreground">Balance — Due at Pickup</span>
               <span className="font-medium">{formatCurrency(balanceDue)}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">
+                Security Deposit ({tripType === "local" ? "Local" : "International"}) — Due at Pickup
+              </span>
+              <span className="font-medium">{formatCurrency(securityDeposit)}</span>
+            </div>
             {days === 0 && (
               <p className="pt-1 text-xs text-muted-foreground">
                 Select your equipment and rental dates above to calculate your total.
@@ -698,7 +705,7 @@ export function RentalForm({
             <div className="space-y-1">
               <p className="font-semibold text-foreground">3. PAYMENT</p>
               <p>Rental Fee: {formatCurrency(totalEstimate)}</p>
-              <p>Security Deposit: ₱________________</p>
+              <p>Security Deposit: {formatCurrency(securityDeposit)}</p>
               <p>
                 Payments shall be made through the approved payment methods of
                 The Memory Club.

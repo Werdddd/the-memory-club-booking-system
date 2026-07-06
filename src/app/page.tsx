@@ -95,8 +95,66 @@ const STEPS = [
   },
 ];
 
+function EquipmentCard({ item }: { item: Equipment }) {
+  return (
+    <Card
+      key={item.id}
+      className="w-full max-w-sm overflow-hidden border-border/60 transition-colors hover:border-gold/40 sm:w-72"
+    >
+      <div className="relative -mx-(--card-spacing) -mt-(--card-spacing) aspect-[4/3] bg-muted">
+        {item.image_url ? (
+          <Image
+            src={item.image_url}
+            alt={item.name}
+            fill
+            unoptimized
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center">
+            <Camera
+              className="size-8 text-muted-foreground/50"
+              strokeWidth={1.5}
+            />
+          </div>
+        )}
+      </div>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base font-medium">
+            {item.name}
+          </CardTitle>
+          <Badge
+            variant={item.is_available ? "default" : "secondary"}
+          >
+            {item.is_available ? "Available" : "Unavailable"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm text-muted-foreground">
+        <p className="capitalize">{item.category}</p>
+        {item.brand && (
+          <p>{[item.brand, item.model].filter(Boolean).join(" ")}</p>
+        )}
+        <PricingTiers
+          dailyRate={item.daily_rate}
+          extendedDailyRate={item.extended_daily_rate}
+          className="text-base font-medium text-gold"
+        />
+        {item.is_available && item.category === "camera" && (
+          <Button asChild size="sm" className="w-full">
+            <Link href={`/rent?camera=${item.id}`}>Rent Now</Link>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default async function Home() {
   const { data: equipment, error } = await getEquipment();
+  const cameras = equipment.filter((item) => item.category === "camera");
+  const accessories = equipment.filter((item) => item.category !== "camera");
   const bookingRanges = await getConfirmedBookingRanges(equipment);
 
   return (
@@ -167,60 +225,21 @@ export default async function Home() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {equipment.map((item) => (
-                    <Card
-                      key={item.id}
-                      className="overflow-hidden border-border/60 transition-colors hover:border-gold/40"
-                    >
-                      <div className="relative -mx-(--card-spacing) -mt-(--card-spacing) aspect-[4/3] bg-muted">
-                        {item.image_url ? (
-                          <Image
-                            src={item.image_url}
-                            alt={item.name}
-                            fill
-                            unoptimized
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center">
-                            <Camera
-                              className="size-8 text-muted-foreground/50"
-                              strokeWidth={1.5}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base font-medium">
-                            {item.name}
-                          </CardTitle>
-                          <Badge
-                            variant={item.is_available ? "default" : "secondary"}
-                          >
-                            {item.is_available ? "Available" : "Unavailable"}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3 text-sm text-muted-foreground">
-                        <p className="capitalize">{item.category}</p>
-                        {item.brand && (
-                          <p>{[item.brand, item.model].filter(Boolean).join(" ")}</p>
-                        )}
-                        <PricingTiers
-                          dailyRate={item.daily_rate}
-                          extendedDailyRate={item.extended_daily_rate}
-                          className="text-base font-medium text-gold"
-                        />
-                        {item.is_available && item.category === "camera" && (
-                          <Button asChild size="sm" className="w-full">
-                            <Link href={`/rent?camera=${item.id}`}>Rent Now</Link>
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="space-y-14">
+                  {cameras.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-5">
+                      {cameras.map((item) => (
+                        <EquipmentCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  )}
+                  {accessories.length > 0 && (
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {accessories.map((item) => (
+                        <EquipmentCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

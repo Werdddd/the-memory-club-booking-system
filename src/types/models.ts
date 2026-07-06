@@ -22,6 +22,15 @@ export type BookingStatus =
 
 export type TripType = "local" | "international";
 
+export const SECURITY_DEPOSIT_BY_TRIP_TYPE: Record<TripType, number> = {
+  local: 1000,
+  international: 2000,
+};
+
+export function getSecurityDeposit(tripType: TripType): number {
+  return SECURITY_DEPOSIT_BY_TRIP_TYPE[tripType];
+}
+
 export type SignatureMethod = "typed" | "drawn";
 
 export type Equipment = {

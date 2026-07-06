@@ -7,7 +7,7 @@ import { toDateOnlyString } from "@/lib/dates";
 import { formatCurrency } from "@/lib/utils";
 import { renderRentalAgreementPdf } from "@/lib/rental-agreement-pdf";
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
-import type { TripType, SignatureMethod } from "@/types/models";
+import { getSecurityDeposit, type TripType, type SignatureMethod } from "@/types/models";
 
 function formatAgreementDate(date: Date): string {
   return date.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
@@ -161,6 +161,7 @@ export async function submitRentalApplication(formData: FormData) {
     returnDate: formatAgreementDate(returnAt),
     returnTime: formatAgreementTime(returnAt),
     rentalFeeLabel: formatCurrency(totalAmount),
+    securityDepositLabel: formatCurrency(getSecurityDeposit(tripType)),
     agreementDate: formatAgreementDate(new Date()),
     signature: signatureForPdf,
   });

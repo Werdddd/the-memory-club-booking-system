@@ -56,13 +56,13 @@ export function SiteFooter() {
                 <Phone className="size-4 shrink-0 text-gold/80" />
                 +63 945 738 0873
               </a>
-              {/* <a
+              <a
                 href="mailto:hello@thememoryclub.com"
                 className="flex items-center gap-2 transition-colors hover:text-foreground"
               >
                 <Mail className="size-4 shrink-0 text-gold/80" />
-                hello@thememoryclub.com
-              </a> */}
+                thememoryclubcamerarental@gmail.com
+              </a>
             </div>
           </div>
         </div>

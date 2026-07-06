@@ -17,6 +17,7 @@ export type RentalAgreementData = {
   returnDate: string;
   returnTime: string;
   rentalFeeLabel: string;
+  securityDepositLabel: string;
   agreementDate: string;
   signature:
     | { method: "typed"; text: string }
@@ -89,7 +90,7 @@ function RentalAgreementDocument({ data }: { data: RentalAgreementData }) {
 
         <Text style={styles.heading}>3. PAYMENT</Text>
         <Text style={styles.paragraph}>Rental Fee: {data.rentalFeeLabel}</Text>
-        <Text style={styles.paragraph}>Security Deposit: ₱________________</Text>
+        <Text style={styles.paragraph}>Security Deposit: {data.securityDepositLabel}</Text>
         <Text style={styles.paragraph}>
           Payments shall be made through the approved payment methods of The Memory Club.
         </Text>

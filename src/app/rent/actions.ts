@@ -55,7 +55,26 @@ async function uploadDocument(
   return path;
 }
 
-export async function submitRentalApplication(formData: FormData) {
+export async function submitRentalApplication(
+  formData: FormData
+): Promise<{ error: string } | { success: true }> {
+  try {
+    return await submitRentalApplicationInner(formData);
+  } catch (err) {
+    // Next.js redacts thrown errors from Server Actions in production
+    // (replacing them with a generic "Server Components render" + digest
+    // message), so validation/upload/db failures must be returned as data
+    // instead of thrown to reach the customer with a useful message.
+    console.error("submitRentalApplication failed:", err);
+    return {
+      error: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+    };
+  }
+}
+
+async function submitRentalApplicationInner(
+  formData: FormData
+): Promise<{ success: true }> {
   const supabase = await createClient();
 
   const fullName = requireString(formData, "full_name");
@@ -245,4 +264,6 @@ export async function submitRentalApplication(formData: FormData) {
 
   revalidatePath("/admin/bookings");
   revalidatePath("/admin");
+
+  return { success: true };
 }

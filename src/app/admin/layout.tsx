@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SidebarNav } from "@/components/admin/sidebar-nav";
 import { SignOutButton } from "@/components/admin/sign-out-button";
+import { MobileSidebar } from "@/components/admin/mobile-sidebar";
 import { Logo } from "@/components/logo";
 import { ModeToggle } from "@/components/mode-toggle";
 
@@ -50,8 +51,12 @@ export default async function AdminLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-border/50 md:hidden">
-          <div className="flex h-16 items-center justify-between px-6">
+          <div className="flex h-16 items-center justify-between px-4 sm:px-6">
             <div className="flex items-center gap-2">
+              <MobileSidebar
+                fullName={profile?.full_name ?? null}
+                email={user.email}
+              />
               <Logo size={22} />
               <span className="font-heading text-sm tracking-wide">Admin</span>
             </div>
@@ -59,9 +64,6 @@ export default async function AdminLayout({
               <ModeToggle />
               <SignOutButton />
             </div>
-          </div>
-          <div className="overflow-x-auto px-3 pb-3">
-            <SidebarNav orientation="horizontal" />
           </div>
         </header>
         <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 md:px-10">

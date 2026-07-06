@@ -12,6 +12,7 @@ import {
   type EquipmentBookingRange,
 } from "@/components/booking-availability-calendar";
 import { Camera, CalendarCheck, PackageCheck, Sparkles } from "lucide-react";
+import { blockedEndDate } from "@/lib/booking-availability";
 
 type Equipment = {
   id: string;
@@ -70,7 +71,8 @@ async function getConfirmedBookingRanges(
         equipment_id: row.equipment_id,
         equipment_name: nameById.get(row.equipment_id)!,
         start_date: row.start_date,
-        end_date: row.end_date,
+        end_date: blockedEndDate(row.start_date, row.end_date),
+        status: row.status as "confirmed" | "completed",
       }));
   } catch {
     return [];

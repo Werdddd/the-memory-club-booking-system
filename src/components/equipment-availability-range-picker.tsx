@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { startOfTodayLocal, toDayPickerRanges } from "@/lib/dates";
+import { startOfTodayPH, toDayPickerRanges } from "@/lib/dates";
 import { bookedRangesForEquipment } from "@/lib/booking-availability";
 
 type EquipmentAvailabilityRangePickerProps = {
@@ -28,7 +28,7 @@ export function EquipmentAvailabilityRangePicker({
   }, [bookedRangesByEquipment, selectedEquipmentIds]);
 
   const disabledMatchers = useMemo(
-    () => [{ before: startOfTodayLocal() }, ...bookedMatchers],
+    () => [{ before: startOfTodayPH() }, ...bookedMatchers],
     [bookedMatchers]
   );
 

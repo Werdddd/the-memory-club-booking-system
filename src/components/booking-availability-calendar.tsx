@@ -25,14 +25,30 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { toDateOnlyString } from "@/lib/dates";
+import { startOfTodayPH, toDateOnlyString } from "@/lib/dates";
 
 export type EquipmentBookingRange = {
   equipment_id: string;
   equipment_name: string;
   start_date: string;
   end_date: string;
+  status: "confirmed" | "completed";
 };
+
+const STATUS_META = {
+  confirmed: {
+    label: "Booked",
+    dot: "bg-blue-500",
+    badgeClassName:
+      "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  },
+  completed: {
+    label: "Completed",
+    dot: "bg-emerald-500",
+    badgeClassName:
+      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  },
+} as const;
 
 type BookingAvailabilityCalendarProps = {
   ranges: EquipmentBookingRange[];
@@ -47,7 +63,9 @@ export function BookingAvailabilityCalendar({
   className,
   emptyMessage = "No confirmed bookings yet.",
 }: BookingAvailabilityCalendarProps) {
-  const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const today = useMemo(() => startOfTodayPH(), []);
+  const currentMonth = useMemo(() => startOfMonth(today), [today]);
+  const [month, setMonth] = useState(() => currentMonth);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const days = useMemo(() => {
@@ -55,6 +73,9 @@ export function BookingAvailabilityCalendar({
     const end = endOfWeek(endOfMonth(month));
     return eachDayOfInterval({ start, end });
   }, [month]);
+
+  const canGoToPreviousMonth = month > currentMonth;
+  const todayKey = toDateOnlyString(today);
 
   function equipmentBookedOn(date: Date): EquipmentBookingRange[] {
     const key = toDateOnlyString(date);
@@ -73,15 +94,22 @@ export function BookingAvailabilityCalendar({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="mr-2 hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
-            <span className="inline-block size-2.5 rounded-full bg-destructive/60" />
-            Booked
+          <span className="mr-2 hidden items-center gap-3 text-xs text-muted-foreground sm:flex">
+            <span className="flex items-center gap-1.5">
+              <span className={cn("inline-block size-2.5 rounded-full", STATUS_META.confirmed.dot)} />
+              Booked
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className={cn("inline-block size-2.5 rounded-full", STATUS_META.completed.dot)} />
+              Completed
+            </span>
           </span>
           <Button
             type="button"
             variant="outline"
             size="icon"
             aria-label="Previous month"
+            disabled={!canGoToPreviousMonth}
             onClick={() => setMonth((m) => subMonths(m, 1))}
           >
             <ChevronLeft className="size-4" />
@@ -110,35 +138,52 @@ export function BookingAvailabilityCalendar({
 
         {days.map((day) => {
           const inMonth = isSameMonth(day, month);
+          const isPast = toDateOnlyString(day) < todayKey;
           const booked = inMonth ? equipmentBookedOn(day) : [];
-          const today = isToday(day);
+          const confirmedCount = booked.filter((b) => b.status === "confirmed").length;
+          const completedCount = booked.filter((b) => b.status === "completed").length;
+          // Past days can't be used to start a new booking, but a past day
+          // with booking history is still worth opening to see what was
+          // booked, so it stays clickable.
+          const clickable = inMonth && (!isPast || booked.length > 0);
+          const isCurrentDay = isToday(day);
 
           return (
             <button
               key={day.toISOString()}
               type="button"
-              disabled={!inMonth}
+              disabled={!clickable}
               onClick={() => setSelectedDate(day)}
               className={cn(
                 "flex min-h-20 flex-col items-start gap-1.5 bg-card p-2 text-left transition-colors sm:min-h-28 sm:p-3",
-                inMonth
+                clickable
                   ? "cursor-pointer hover:bg-muted"
-                  : "cursor-default bg-muted/30 text-muted-foreground/40",
-                today && inMonth && "ring-1 ring-inset ring-gold/50"
+                  : "cursor-not-allowed bg-muted/30 text-muted-foreground/40",
+                isPast && inMonth && "text-muted-foreground/40",
+                isCurrentDay && inMonth && "ring-1 ring-inset ring-gold/50"
               )}
             >
               <span
                 className={cn(
                   "text-sm",
-                  today && inMonth && "font-semibold text-gold"
+                  isCurrentDay && inMonth && "font-semibold text-gold"
                 )}
               >
                 {format(day, "d")}
               </span>
               {booked.length > 0 && (
-                <Badge variant="destructive" className="mt-auto">
-                  {booked.length} booked
-                </Badge>
+                <div className="mt-auto flex flex-wrap gap-1">
+                  {confirmedCount > 0 && (
+                    <Badge variant="outline" className={STATUS_META.confirmed.badgeClassName}>
+                      {confirmedCount} booked
+                    </Badge>
+                  )}
+                  {completedCount > 0 && (
+                    <Badge variant="outline" className={STATUS_META.completed.badgeClassName}>
+                      {completedCount} completed
+                    </Badge>
+                  )}
+                </div>
               )}
             </button>
           );
@@ -152,7 +197,7 @@ export function BookingAvailabilityCalendar({
             <DialogDescription>
               {selectedBookings.length > 0
                 ? "Equipment booked on this date."
-                : "No confirmed bookings for this date yet."}
+                : "No bookings for this date yet."}
             </DialogDescription>
           </DialogHeader>
 
@@ -164,8 +209,8 @@ export function BookingAvailabilityCalendar({
                   className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2 text-sm"
                 >
                   <span className="truncate">{b.equipment_name}</span>
-                  <Badge variant="destructive" className="shrink-0">
-                    Booked
+                  <Badge variant="outline" className={cn("shrink-0", STATUS_META[b.status].badgeClassName)}>
+                    {STATUS_META[b.status].label}
                   </Badge>
                 </li>
               ))}

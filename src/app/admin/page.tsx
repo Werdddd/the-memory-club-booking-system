@@ -11,6 +11,7 @@ import { blockedEndDate } from "@/lib/booking-availability";
 type ConfirmedBookingRow = {
   start_date: string;
   end_date: string;
+  status: "confirmed" | "completed";
   booking_items: { equipment_id: string; equipment: { name: string } | null }[];
 };
 
@@ -34,8 +35,8 @@ export default async function AdminDashboardPage() {
         .eq("status", "completed"),
       supabase
         .from("bookings")
-        .select("start_date, end_date, booking_items(equipment_id, equipment(name))")
-        .eq("status", "confirmed")
+        .select("start_date, end_date, status, booking_items(equipment_id, equipment(name))")
+        .in("status", ["confirmed", "completed"])
         .order("start_date")
         .returns<ConfirmedBookingRow[]>(),
     ]);
@@ -52,6 +53,7 @@ export default async function AdminDashboardPage() {
         equipment_name: item.equipment?.name ?? "Unknown equipment",
         start_date: booking.start_date,
         end_date: blockedEndDate(booking.start_date, booking.end_date),
+        status: booking.status,
       }))
   );
 
@@ -108,7 +110,7 @@ export default async function AdminDashboardPage() {
         <CardContent>
           <BookingAvailabilityCalendar
             ranges={bookingRanges}
-            emptyMessage="No confirmed bookings yet."
+            emptyMessage="No bookings yet."
           />
         </CardContent>
       </Card>

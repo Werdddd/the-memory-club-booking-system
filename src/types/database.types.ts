@@ -338,6 +338,7 @@ export type Database = {
           equipment_id: string
           start_date: string
           end_date: string
+          status: Database["public"]["Enums"]["booking_status"]
         }[]
       }
       is_admin: { Args: never; Returns: boolean }

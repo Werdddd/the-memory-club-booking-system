@@ -19,6 +19,26 @@ export function startOfTodayLocal(): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+/**
+ * Today's calendar date in the Philippines (UTC+8, no DST), regardless of the
+ * visitor's device timezone, returned as a local midnight Date so it compares
+ * correctly against other date-only values in this file (e.g. parseDateOnly).
+ */
+export function startOfTodayPH(): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+  const day = Number(parts.find((p) => p.type === "day")?.value);
+
+  return new Date(year, month - 1, day);
+}
+
 /** Inclusive-inclusive overlap check between two [start,end] date-only ranges. */
 export function dateRangesOverlap(
   aStart: string,

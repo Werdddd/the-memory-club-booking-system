@@ -47,22 +47,22 @@ export function SiteFooter() {
             <div className="mt-4 flex flex-col gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
                 <MapPin className="size-4 shrink-0 text-gold/80" />
-                Makati City, Metro Manila, Philippines
+                Navotas, Mandaluyong City, Metro Manila
               </span>
               <a
-                href="tel:+639171234567"
+                href="tel:+639457380873"
                 className="flex items-center gap-2 transition-colors hover:text-foreground"
               >
                 <Phone className="size-4 shrink-0 text-gold/80" />
-                +63 917 123 4567
+                +63 945 738 0873
               </a>
-              <a
+              {/* <a
                 href="mailto:hello@thememoryclub.com"
                 className="flex items-center gap-2 transition-colors hover:text-foreground"
               >
                 <Mail className="size-4 shrink-0 text-gold/80" />
                 hello@thememoryclub.com
-              </a>
+              </a> */}
             </div>
           </div>
         </div>

@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import {
+  ArrowLeft,
   CalendarCheck2,
   Camera,
   CheckCircle2,
   CreditCard,
   FileText,
   Loader2,
+  ScrollText,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -81,6 +83,14 @@ export function RentalForm({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [step, setStep] = useState<"details" | "terms">("details");
+  const [fullName, setFullName] = useState("");
+  const [address, setAddress] = useState("");
+  const [contactNumber1, setContactNumber1] = useState("");
+  const [contactNumber2, setContactNumber2] = useState("");
+  const [email, setEmail] = useState("");
+  const [facebookLink, setFacebookLink] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
 
   const availableAddonIds = useMemo(() => {
     const ids = new Set<string>();
@@ -159,6 +169,39 @@ export function RentalForm({
   const downPayment = totalEstimate / 2;
   const balanceDue = totalEstimate - downPayment;
 
+  const selectedCameraNames = cameras.filter((c) => selectedCameraIds.has(c.id)).map((c) => c.name);
+  const selectedAddonNames = accessories.filter((a) => effectiveAddonIds.has(a.id)).map((a) => a.name);
+
+  function formatDisplayDate(date: Date | undefined) {
+    if (!date) return "________________";
+    return date.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+  }
+
+  function formatDisplayTime(time: string) {
+    if (!time) return "________________";
+    const [hourStr, minuteStr] = time.split(":");
+    const hour = Number(hourStr);
+    const period = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour12}:${minuteStr} ${period}`;
+  }
+
+  function handleContinueToTerms() {
+    if (selectedCameraIds.size === 0) {
+      toast.error("Please select at least one camera.");
+      return;
+    }
+    if (!dateRange?.from) {
+      toast.error("Please select your rental dates.");
+      return;
+    }
+    if (!formRef.current?.reportValidity()) {
+      return;
+    }
+    setStep("terms");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function handleSubmit(formData: FormData) {
     if (selectedCameraIds.size === 0) {
       toast.error("Please select at least one camera.");
@@ -211,7 +254,8 @@ export function RentalForm({
   }
 
   return (
-    <form action={handleSubmit} className="space-y-6">
+    <form ref={formRef} action={handleSubmit} className="space-y-6">
+    <div className={step === "details" ? "space-y-6" : "hidden"}>
       {/* Renter information */}
       <Card>
         <CardHeader>
@@ -223,23 +267,60 @@ export function RentalForm({
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="full_name">Full Legal Name</Label>
-            <Input id="full_name" name="full_name" required placeholder="Juan Dela Cruz" />
+            <Input
+              id="full_name"
+              name="full_name"
+              required
+              placeholder="Juan Dela Cruz"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="address">Address</Label>
-            <Input id="address" name="address" required placeholder="Street, Barangay, City" />
+            <Input
+              id="address"
+              name="address"
+              required
+              placeholder="Street, Barangay, City"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="contact_number_1">Contact Number 1</Label>
-            <Input id="contact_number_1" name="contact_number_1" type="tel" required placeholder="09XX XXX XXXX" />
+            <Input
+              id="contact_number_1"
+              name="contact_number_1"
+              type="tel"
+              required
+              placeholder="09XX XXX XXXX"
+              value={contactNumber1}
+              onChange={(e) => setContactNumber1(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="contact_number_2">Contact Number 2 (optional)</Label>
-            <Input id="contact_number_2" name="contact_number_2" type="tel" placeholder="09XX XXX XXXX" />
+            <Input
+              id="contact_number_2"
+              name="contact_number_2"
+              type="tel"
+              placeholder="09XX XXX XXXX"
+              value={contactNumber2}
+              onChange={(e) => setContactNumber2(e.target.value)}
+            />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" required placeholder="you@example.com" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="facebook_link">Facebook Profile Link</Label>
@@ -249,6 +330,8 @@ export function RentalForm({
               type="url"
               required
               placeholder="https://facebook.com/yourname"
+              value={facebookLink}
+              onChange={(e) => setFacebookLink(e.target.value)}
             />
           </div>
         </CardContent>
@@ -499,24 +582,304 @@ export function RentalForm({
         </CardContent>
       </Card>
 
+      {/* Review */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-gold" /> Review Your Details
+          </CardTitle>
+          <CardDescription>
+            Please double-check everything below before continuing to the
+            Rental Agreement. You won&apos;t be able to edit these details
+            once you proceed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+            <div>
+              <span className="text-muted-foreground">Renter: </span>
+              <span className="font-medium">{fullName || "—"}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Contact: </span>
+              <span className="font-medium">{contactNumber1 || "—"}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-muted-foreground">Address: </span>
+              <span className="font-medium">{address || "—"}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-muted-foreground">Email: </span>
+              <span className="font-medium">{email || "—"}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-muted-foreground">Equipment: </span>
+              <span className="font-medium">
+                {selectedCameraNames.length > 0 ? selectedCameraNames.join(", ") : "—"}
+                {selectedAddonNames.length > 0 ? ` + ${selectedAddonNames.join(", ")}` : ""}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Pickup: </span>
+              <span className="font-medium">
+                {formatDisplayDate(dateRange?.from)} · {formatDisplayTime(pickupTime)}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Return: </span>
+              <span className="font-medium">
+                {formatDisplayDate(dateRange?.to ?? dateRange?.from)} · {formatDisplayTime(returnTime)}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between rounded-md border border-gold/40 bg-gold/5 p-3">
+            <span className="text-muted-foreground">Total / Down Payment</span>
+            <span className="font-heading font-medium text-gold">
+              {formatCurrency(totalEstimate)} / {formatCurrency(downPayment)}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button type="button" size="lg" className="w-full" onClick={handleContinueToTerms}>
+        Confirm & Continue to Rental Agreement
+      </Button>
+    </div>
+
+    <div className={step === "terms" ? "space-y-6" : "hidden"}>
       {/* Terms, agreement & signature */}
       <Card>
         <CardHeader>
-          <CardTitle>Terms & Conditions</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ScrollText className="size-4 text-gold" /> Camera Rental Agreement
+          </CardTitle>
+          <CardDescription>
+            Please read the full agreement below, then sign to submit your
+            application.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="max-h-40 overflow-y-auto rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+          <div className="max-h-[32rem] space-y-4 overflow-y-auto rounded-md border border-border/60 bg-muted/30 p-4 text-xs leading-relaxed text-muted-foreground">
+            <div className="space-y-1 text-center">
+              <p className="font-heading text-sm font-semibold text-foreground">THE MEMORY CLUB</p>
+              <p className="font-heading text-sm font-semibold text-foreground">CAMERA RENTAL AGREEMENT</p>
+            </div>
             <p>
-              By submitting this rental application, the renter agrees to
-              return all equipment on the agreed date and time, in the same
-              condition as received, save for reasonable wear and tear. The
-              renter is fully liable for loss, theft, or damage while the
-              equipment is in their possession. A valid deposit and the
-              verification documents above are required before pickup. Late
-              returns are subject to additional daily charges. The Memory
-              Club reserves the right to refuse or cancel any booking that
-              fails verification.
+              This Camera Rental Agreement (&quot;Agreement&quot;) is entered into
+              between The Memory Club (&quot;Lessor&quot;) and the Renter
+              (&quot;Renter&quot;). By signing this Agreement, the Renter
+              acknowledges that they have read, understood, and agreed to all
+              the terms and conditions stated herein.
             </p>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">1. RENTAL DETAILS</p>
+              <p>Equipment Rented: {selectedCameraNames.length > 0 ? selectedCameraNames.join(", ") : "________________"}</p>
+              <p>Accessories Included: {selectedAddonNames.length > 0 ? selectedAddonNames.join(", ") : "None"}</p>
+              <p>
+                The Renter confirms that all equipment and accessories listed
+                above were received complete, clean, and in good working
+                condition.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">2. RENTAL PERIOD</p>
+              <p>Pickup Date: {formatDisplayDate(dateRange?.from)}</p>
+              <p>Pickup Time: {formatDisplayTime(pickupTime)}</p>
+              <p>Return Date: {formatDisplayDate(dateRange?.to ?? dateRange?.from)}</p>
+              <p>Return Time: {formatDisplayTime(returnTime)}</p>
+              <p>
+                The Renter agrees to return the equipment on or before the
+                agreed return date and time.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">3. PAYMENT</p>
+              <p>Rental Fee: {formatCurrency(totalEstimate)}</p>
+              <p>Security Deposit: ₱________________</p>
+              <p>
+                Payments shall be made through the approved payment methods of
+                The Memory Club.
+              </p>
+              <p>
+                The security deposit shall be refunded within 24 hours after
+                the equipment has been returned, inspected, and confirmed to
+                be complete and in satisfactory condition, less any
+                applicable deductions for damages, late fees, or other
+                outstanding charges.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">4. RENTER&apos;S RESPONSIBILITIES</p>
+              <p>The Renter agrees to:</p>
+              <ul className="list-disc space-y-1 pl-4">
+                <li>Handle the equipment with reasonable care at all times.</li>
+                <li>
+                  Keep the equipment safe from loss, theft, water damage, sand
+                  damage, accidental drops, impact, misuse, or any other form
+                  of damage.
+                </li>
+                <li>
+                  Return all rented equipment and accessories complete and in
+                  the same condition as received, except for normal wear and
+                  tear.
+                </li>
+                <li>
+                  Immediately notify The Memory Club of any damage,
+                  malfunction, loss, or theft involving the equipment.
+                </li>
+                <li>
+                  Not lend, transfer, sublease, or allow any person other than
+                  the Renter to use the rented equipment without the prior
+                  written consent of The Memory Club. The Renter remains fully
+                  responsible for the equipment throughout the rental period,
+                  regardless of who is using it.
+                </li>
+                <li>Not modify, dismantle, or attempt to repair the equipment.</li>
+              </ul>
+              <p>
+                For documentation purposes, The Memory Club may provide photos
+                or a video recording showing the condition of the equipment
+                prior to release.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">5. LATE RETURNS</p>
+              <p>The equipment must be returned on the agreed return date and time.</p>
+              <p>Late returns shall incur the following charges:</p>
+              <ul className="list-disc space-y-1 pl-4">
+                <li>₱200 per hour of delay.</li>
+                <li>
+                  ₱1,000 per full day for every day the equipment remains
+                  unreturned beyond the agreed return date.
+                </li>
+              </ul>
+              <p>Late fees may be deducted from the security deposit.</p>
+              <p>
+                Failure to return the equipment within twenty-four (24) hours
+                without prior communication may be considered a breach of
+                this Agreement and may result in legal action and recovery of
+                all applicable costs.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">6. DAMAGE, LOSS &amp; LIABILITY</p>
+              <p>
+                The Renter assumes full responsibility for the rented
+                equipment from the time it is received until it is returned
+                and accepted by The Memory Club.
+              </p>
+              <p>In the event of damage, loss, or theft:</p>
+              <ul className="list-disc space-y-1 pl-4">
+                <li>
+                  The Renter shall be responsible for the full cost of repair
+                  or replacement, depending on the extent of the damage.
+                </li>
+                <li>
+                  All inspections, repair decisions, and replacement
+                  determinations shall be made solely by The Memory Club.
+                </li>
+                <li>
+                  The Renter shall not repair or attempt to repair the
+                  equipment through any third-party technician or service
+                  center without the prior written approval of The Memory
+                  Club. Any unauthorized repair or modification shall be
+                  treated as additional damage, and the Renter shall remain
+                  liable for all resulting costs.
+                </li>
+                <li>
+                  If the equipment is declared beyond economical repair, lost,
+                  or stolen, the Renter agrees to pay the full replacement
+                  cost of a brand-new equivalent unit based on its current
+                  market value.
+                </li>
+                <li>
+                  The security deposit may be partially or fully forfeited
+                  depending on the extent of the damage or outstanding
+                  obligations.
+                </li>
+                <li>
+                  If the equipment becomes unavailable for confirmed bookings
+                  due to damage caused during the rental period, the Renter
+                  may also be held responsible for the resulting loss of
+                  rental income.
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">7. BREACH OF AGREEMENT</p>
+              <p>
+                Failure to comply with any provision of this Agreement shall
+                constitute a breach of contract.
+              </p>
+              <p>Upon breach, The Memory Club reserves the right to:</p>
+              <ul className="list-disc space-y-1 pl-4">
+                <li>Recover the rented equipment immediately;</li>
+                <li>
+                  Charge all unpaid rental fees, late fees, repair costs, or
+                  replacement costs;
+                </li>
+                <li>Retain all or part of the security deposit where applicable; and</li>
+                <li>
+                  Pursue any legal remedies available under the laws of the
+                  Republic of the Philippines.
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">8. GOVERNING LAW</p>
+              <p>
+                This Agreement shall be governed by and interpreted in
+                accordance with the laws of the Republic of the Philippines.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">9. FORCE MAJEURE</p>
+              <p>
+                Neither party shall be held liable for delays or failure to
+                perform their obligations under this Agreement when caused by
+                events beyond their reasonable control, including but not
+                limited to natural disasters, typhoons, floods, earthquakes,
+                government restrictions, or other unforeseen emergencies.
+              </p>
+              <p>
+                The Renter must notify The Memory Club as soon as reasonably
+                possible if such an event affects the return of the
+                equipment. Any extension of the rental period or waiver of
+                applicable fees shall be solely at the discretion of The
+                Memory Club and must be confirmed in writing.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">10. ACKNOWLEDGMENT</p>
+              <p>By signing below, the Renter confirms that:</p>
+              <ul className="list-disc space-y-1 pl-4">
+                <li>They have carefully read and fully understood this Agreement.</li>
+                <li>They agree to comply with all the terms and conditions stated herein.</li>
+                <li>
+                  They acknowledge receipt of the rented equipment and
+                  accessories in good working condition.
+                </li>
+                <li>
+                  They accept full responsibility for the rented equipment
+                  throughout the entire rental period.
+                </li>
+                <li>
+                  They understand that failure to comply with this Agreement
+                  may result in additional charges and legal action where
+                  necessary.
+                </li>
+              </ul>
+            </div>
           </div>
 
           <label className="flex cursor-pointer items-start gap-2 text-sm">
@@ -526,19 +889,37 @@ export function RentalForm({
               onCheckedChange={(v) => setTermsAccepted(v === true)}
               className="mt-0.5"
             />
-            I have read, understood, and agree to the Terms and Conditions above.
+            I have read, understood, and agree to the Camera Rental Agreement above.
           </label>
 
-          <div className="space-y-2">
-            <Label>Signature</Label>
-            <SignaturePad />
+          <div className="space-y-2 rounded-md border border-border/60 p-3">
+            <p className="text-sm font-medium">Signature</p>
+            <p className="text-xs text-muted-foreground">
+              Renter Name: {fullName || "________________"} · Date: {formatDisplayDate(new Date())}
+            </p>
+            <SignaturePad validationEnabled={step === "terms"} />
           </div>
         </CardContent>
       </Card>
 
-      <Button type="submit" size="lg" className="w-full" disabled={isPending}>
-        {isPending ? <Loader2 className="size-4 animate-spin" /> : "Submit Rental Application"}
-      </Button>
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="flex-1"
+          onClick={() => {
+            setStep("details");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          <ArrowLeft className="size-4" /> Back
+        </Button>
+        <Button type="submit" size="lg" className="flex-1" disabled={isPending}>
+          {isPending ? <Loader2 className="size-4 animate-spin" /> : "Submit Rental Application"}
+        </Button>
+      </div>
+    </div>
     </form>
   );
 }

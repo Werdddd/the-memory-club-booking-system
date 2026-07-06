@@ -4,7 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
 import { toDateOnlyString } from "@/lib/dates";
+import { formatCurrency } from "@/lib/utils";
+import { renderRentalAgreementPdf } from "@/lib/rental-agreement-pdf";
+import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
 import type { TripType, SignatureMethod } from "@/types/models";
+
+function formatAgreementDate(date: Date): string {
+  return date.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function formatAgreementTime(date: Date): string {
+  return date.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
+}
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -123,6 +134,45 @@ export async function submitRentalApplication(formData: FormData) {
       ? await uploadDocument(supabase, folder, formData, "signature_file", true)
       : null;
 
+  let signatureForPdf: { method: "typed"; text: string } | { method: "drawn"; dataUri: string };
+  if (signatureMethod === "typed") {
+    signatureForPdf = { method: "typed", text: signatureText! };
+  } else {
+    const signatureFile = formData.get("signature_file");
+    if (!(signatureFile instanceof File) || signatureFile.size === 0) {
+      throw new Error("Please draw your signature.");
+    }
+    const bytes = Buffer.from(await signatureFile.arrayBuffer());
+    signatureForPdf = {
+      method: "drawn",
+      dataUri: `data:${signatureFile.type || "image/png"};base64,${bytes.toString("base64")}`,
+    };
+  }
+
+  const equipmentNames = items.filter((i) => equipmentIds.includes(i.id)).map((i) => i.name);
+  const addonNames = items.filter((i) => addonIds.includes(i.id)).map((i) => i.name);
+
+  const agreementPdf = await renderRentalAgreementPdf({
+    fullName,
+    equipmentNames,
+    addonNames,
+    pickupDate: formatAgreementDate(pickupAt),
+    pickupTime: formatAgreementTime(pickupAt),
+    returnDate: formatAgreementDate(returnAt),
+    returnTime: formatAgreementTime(returnAt),
+    rentalFeeLabel: formatCurrency(totalAmount),
+    agreementDate: formatAgreementDate(new Date()),
+    signature: signatureForPdf,
+  });
+
+  const agreementPdfPath = `${folder}/agreement.pdf`;
+  const { error: agreementUploadError } = await supabase.storage
+    .from("booking-documents")
+    .upload(agreementPdfPath, agreementPdf, { contentType: "application/pdf" });
+  if (agreementUploadError) {
+    throw new Error(`Failed to save rental agreement: ${agreementUploadError.message}`);
+  }
+
   // Guest submissions have no SELECT grant under RLS (only admins can read
   // them back), so the id is minted here rather than via .select() after
   // insert, and reused directly for the booking_items rows below.
@@ -156,6 +206,7 @@ export async function submitRentalApplication(formData: FormData) {
       signature_method: signatureMethod,
       signature_text: signatureText,
       signature_path: signaturePath,
+      agreement_pdf_path: agreementPdfPath,
     });
 
   if (bookingError) {
@@ -174,6 +225,22 @@ export async function submitRentalApplication(formData: FormData) {
     .insert(bookingItems);
 
   if (bookingItemsError) throw new Error(bookingItemsError.message);
+
+  try {
+    await sendBookingConfirmationEmail({
+      toEmail: email,
+      fullName,
+      equipmentNames,
+      addonNames,
+      pickupDate: formatAgreementDate(pickupAt),
+      pickupTime: formatAgreementTime(pickupAt),
+      returnDate: formatAgreementDate(returnAt),
+      returnTime: formatAgreementTime(returnAt),
+      totalAmountLabel: formatCurrency(totalAmount),
+    });
+  } catch (error) {
+    console.error("Failed to send booking confirmation email:", error);
+  }
 
   revalidatePath("/admin/bookings");
   revalidatePath("/admin");

@@ -68,6 +68,7 @@ export type Booking = {
   signature_method: SignatureMethod | null;
   signature_text: string | null;
   signature_path: string | null;
+  agreement_pdf_path: string | null;
   created_at: string;
   profiles: { full_name: string | null; phone: string | null } | null;
 };

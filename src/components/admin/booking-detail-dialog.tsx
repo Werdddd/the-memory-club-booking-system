@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { Eye, Loader2 } from "lucide-react";
+import { Eye, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +36,7 @@ export function BookingDetailDialog({ booking }: { booking: BookingWithItems }) 
     (v): v is string => typeof v === "string" && v.length > 0
   );
   if (booking.signature_path) documentPaths.push(booking.signature_path);
+  if (booking.agreement_pdf_path) documentPaths.push(booking.agreement_pdf_path);
 
   useEffect(() => {
     if (!open || documentPaths.length === 0) return;
@@ -187,6 +188,16 @@ export function BookingDetailDialog({ booking }: { booking: BookingWithItems }) 
                 unoptimized
                 className="mt-2 rounded-md border border-border/60 bg-white"
               />
+            )}
+            {booking.agreement_pdf_path && (
+              <a
+                href={urls[booking.agreement_pdf_path] ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-gold underline-offset-2 hover:underline"
+              >
+                <FileText className="size-3.5" /> View / Download Signed Agreement (PDF)
+              </a>
             )}
           </section>
         </div>

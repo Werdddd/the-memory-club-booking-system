@@ -14,7 +14,14 @@ import type { SignatureMethod } from "@/types/models";
  * hidden file input in sync with the canvas (via DataTransfer) so the
  * parent's native <form action={...}> submission picks it up untouched.
  */
-export function SignaturePad({ className }: { className?: string }) {
+export function SignaturePad({
+  className,
+  validationEnabled = true,
+}: {
+  className?: string;
+  /** Set to false while this field is hidden (e.g. an earlier wizard step) so its `required` typed-signature input can't block validation of the visible step. */
+  validationEnabled?: boolean;
+}) {
   const [method, setMethod] = useState<SignatureMethod>("typed");
   const [typedText, setTypedText] = useState("");
   const [hasDrawing, setHasDrawing] = useState(false);
@@ -115,7 +122,7 @@ export function SignaturePad({ className }: { className?: string }) {
       {method === "typed" ? (
         <Input
           name="signature_text"
-          required={method === "typed"}
+          required={validationEnabled && method === "typed"}
           value={typedText}
           onChange={(e) => setTypedText(e.target.value)}
           placeholder="Type your full legal name"

@@ -84,6 +84,7 @@ export type Database = {
       bookings: {
         Row: {
           address: string | null
+          agreement_pdf_path: string | null
           contact_number_1: string | null
           contact_number_2: string | null
           created_at: string
@@ -116,6 +117,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          agreement_pdf_path?: string | null
           contact_number_1?: string | null
           contact_number_2?: string | null
           created_at?: string
@@ -148,6 +150,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          agreement_pdf_path?: string | null
           contact_number_1?: string | null
           contact_number_2?: string | null
           created_at?: string

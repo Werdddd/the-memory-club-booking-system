@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   Table,
@@ -21,9 +21,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { BookingDetailDialog } from "@/components/admin/booking-detail-dialog";
-import { updateBookingStatus, setDepositPaid } from "@/app/admin/bookings/actions";
-import type { BookingStatus, BookingWithItems } from "@/types/models";
+import { BookingFormDialog } from "@/components/admin/booking-form-dialog";
+import { updateBookingStatus, setDepositPaid, deleteBooking } from "@/app/admin/bookings/actions";
+import type { BookingStatus, BookingWithItems, Equipment } from "@/types/models";
 
 const STATUSES: BookingStatus[] = [
   "pending",
@@ -123,7 +136,59 @@ function DepositSwitch({ booking }: { booking: BookingWithItems }) {
   );
 }
 
-export function BookingsTable({ bookings }: { bookings: BookingWithItems[] }) {
+function DeleteBookingButton({ booking }: { booking: BookingWithItems }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    startTransition(async () => {
+      try {
+        await deleteBooking(booking.id);
+        toast.success("Booking deleted.");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Delete failed.");
+      }
+    });
+  }
+
+  const renterName = booking.full_name ?? booking.profiles?.full_name ?? "this booking";
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Delete booking"
+          disabled={isPending}
+          className="text-destructive hover:text-destructive"
+        >
+          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete booking for {renterName}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This permanently removes the booking and its equipment records. This can&apos;t be
+            undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+export function BookingsTable({
+  bookings,
+  equipment,
+}: {
+  bookings: BookingWithItems[];
+  equipment: Equipment[];
+}) {
   if (bookings.length === 0) {
     return (
       <p className="rounded-md border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
@@ -170,7 +235,11 @@ export function BookingsTable({ bookings }: { bookings: BookingWithItems[] }) {
                 <StatusSelect booking={booking} />
               </TableCell>
               <TableCell className="text-right">
-                <BookingDetailDialog booking={booking} />
+                <div className="flex items-center justify-end gap-1">
+                  <BookingFormDialog booking={booking} equipment={equipment} />
+                  <BookingDetailDialog booking={booking} />
+                  <DeleteBookingButton booking={booking} />
+                </div>
               </TableCell>
             </TableRow>
           ))}

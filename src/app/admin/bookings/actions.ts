@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
+import { parseDateOnly, phDateTimeToUTC } from "@/lib/dates";
 import type { BookingStatus } from "@/types/models";
 
 type AdminBookingFields = {
@@ -74,8 +75,8 @@ export async function createAdminBooking(formData: FormData) {
   const pickupAt = input.pickupTime ? `${input.startDate}T${input.pickupTime}` : null;
   const returnAt = input.returnTime ? `${input.endDate}T${input.returnTime}` : null;
   const days = rentalDays(
-    new Date(pickupAt ?? input.startDate),
-    new Date(returnAt ?? input.endDate)
+    pickupAt ? phDateTimeToUTC(pickupAt) : parseDateOnly(input.startDate),
+    returnAt ? phDateTimeToUTC(returnAt) : parseDateOnly(input.endDate)
   );
 
   const bookingItems = await resolveBookingItems(supabase, input.equipmentIds, days);
@@ -87,8 +88,8 @@ export async function createAdminBooking(formData: FormData) {
       status: input.status,
       start_date: input.startDate,
       end_date: input.endDate,
-      pickup_time: pickupAt ? new Date(pickupAt).toISOString() : null,
-      return_time: returnAt ? new Date(returnAt).toISOString() : null,
+      pickup_time: pickupAt ? phDateTimeToUTC(pickupAt).toISOString() : null,
+      return_time: returnAt ? phDateTimeToUTC(returnAt).toISOString() : null,
       total_amount: input.totalAmount,
       deposit_paid: input.depositPaid,
       full_name: input.fullName,
@@ -121,8 +122,8 @@ export async function updateAdminBooking(id: string, formData: FormData) {
   const pickupAt = input.pickupTime ? `${input.startDate}T${input.pickupTime}` : null;
   const returnAt = input.returnTime ? `${input.endDate}T${input.returnTime}` : null;
   const days = rentalDays(
-    new Date(pickupAt ?? input.startDate),
-    new Date(returnAt ?? input.endDate)
+    pickupAt ? phDateTimeToUTC(pickupAt) : parseDateOnly(input.startDate),
+    returnAt ? phDateTimeToUTC(returnAt) : parseDateOnly(input.endDate)
   );
 
   const bookingItems = await resolveBookingItems(supabase, input.equipmentIds, days);
@@ -133,8 +134,8 @@ export async function updateAdminBooking(id: string, formData: FormData) {
       status: input.status,
       start_date: input.startDate,
       end_date: input.endDate,
-      pickup_time: pickupAt ? new Date(pickupAt).toISOString() : null,
-      return_time: returnAt ? new Date(returnAt).toISOString() : null,
+      pickup_time: pickupAt ? phDateTimeToUTC(pickupAt).toISOString() : null,
+      return_time: returnAt ? phDateTimeToUTC(returnAt).toISOString() : null,
       total_amount: input.totalAmount,
       deposit_paid: input.depositPaid,
       full_name: input.fullName,

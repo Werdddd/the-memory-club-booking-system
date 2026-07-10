@@ -36,6 +36,7 @@ import {
 import { BookingDetailDialog } from "@/components/admin/booking-detail-dialog";
 import { BookingFormDialog } from "@/components/admin/booking-form-dialog";
 import { updateBookingStatus, setDepositPaid, deleteBooking } from "@/app/admin/bookings/actions";
+import { parseDateOnly } from "@/lib/dates";
 import type { BookingStatus, BookingWithItems, Equipment } from "@/types/models";
 
 const STATUSES: BookingStatus[] = [
@@ -224,8 +225,8 @@ export function BookingsTable({
                 )}
               </TableCell>
               <TableCell className="text-sm">
-                {format(new Date(booking.start_date), "MMM d, yyyy")} –{" "}
-                {format(new Date(booking.end_date), "MMM d, yyyy")}
+                {format(parseDateOnly(booking.start_date), "MMM d, yyyy")} –{" "}
+                {format(parseDateOnly(booking.end_date), "MMM d, yyyy")}
               </TableCell>
               <TableCell>{formatCurrency(Number(booking.total_amount))}</TableCell>
               <TableCell>

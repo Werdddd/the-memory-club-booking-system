@@ -28,6 +28,7 @@ import {
 import { createAdminBooking, updateAdminBooking } from "@/app/admin/bookings/actions";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
+import { phDateTimeToUTC, toPHTimeInputValue } from "@/lib/dates";
 import type { BookingStatus, BookingWithItems, Equipment } from "@/types/models";
 
 const STATUSES: BookingStatus[] = [
@@ -37,13 +38,6 @@ const STATUSES: BookingStatus[] = [
   "completed",
   "cancelled",
 ];
-
-function toTimeInputValue(iso: string | null): string {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toTimeString().slice(0, 5);
-}
 
 export function BookingFormDialog({
   booking,
@@ -58,8 +52,8 @@ export function BookingFormDialog({
   const [depositPaid, setDepositPaid] = useState(booking?.deposit_paid ?? false);
   const [startDate, setStartDate] = useState(booking?.start_date ?? "");
   const [endDate, setEndDate] = useState(booking?.end_date ?? "");
-  const [pickupTime, setPickupTime] = useState(toTimeInputValue(booking?.pickup_time ?? null));
-  const [returnTime, setReturnTime] = useState(toTimeInputValue(booking?.return_time ?? null));
+  const [pickupTime, setPickupTime] = useState(toPHTimeInputValue(booking?.pickup_time ?? null));
+  const [returnTime, setReturnTime] = useState(toPHTimeInputValue(booking?.return_time ?? null));
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<Set<string>>(
     () => new Set(booking?.booking_items.map((i) => i.equipment_id) ?? [])
   );
@@ -70,8 +64,8 @@ export function BookingFormDialog({
 
   const suggestedTotal = useMemo(() => {
     if (!startDate || !endDate || selectedEquipmentIds.size === 0) return null;
-    const start = new Date(`${startDate}T${pickupTime || "00:00"}`);
-    const end = new Date(`${endDate}T${returnTime || "00:00"}`);
+    const start = phDateTimeToUTC(`${startDate}T${pickupTime || "00:00"}`);
+    const end = phDateTimeToUTC(`${endDate}T${returnTime || "00:00"}`);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
       return null;
     }
@@ -100,8 +94,8 @@ export function BookingFormDialog({
     setDepositPaid(booking?.deposit_paid ?? false);
     setStartDate(booking?.start_date ?? "");
     setEndDate(booking?.end_date ?? "");
-    setPickupTime(toTimeInputValue(booking?.pickup_time ?? null));
-    setReturnTime(toTimeInputValue(booking?.return_time ?? null));
+    setPickupTime(toPHTimeInputValue(booking?.pickup_time ?? null));
+    setReturnTime(toPHTimeInputValue(booking?.return_time ?? null));
     setSelectedEquipmentIds(new Set(booking?.booking_items.map((i) => i.equipment_id) ?? []));
     setTotalAmount(booking ? String(booking.total_amount) : "");
   }

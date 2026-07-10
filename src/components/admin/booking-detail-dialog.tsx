@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/utils";
+import { formatDateTimePH } from "@/lib/dates";
 import { getBookingDocumentUrl } from "@/app/admin/bookings/actions";
 import type { BookingWithItems } from "@/types/models";
 
@@ -95,9 +96,8 @@ export function BookingDetailDialog({ booking }: { booking: BookingWithItems }) 
               label="Rental Window"
               value={
                 booking.pickup_time && booking.return_time
-                  ? `${format(new Date(booking.pickup_time), "MMM d, h:mm a")} – ${format(
-                      new Date(booking.return_time),
-                      "MMM d, h:mm a"
+                  ? `${formatDateTimePH(booking.pickup_time)} – ${formatDateTimePH(
+                      booking.return_time
                     )}`
                   : `${booking.start_date} – ${booking.end_date}`
               }

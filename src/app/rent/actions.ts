@@ -3,18 +3,30 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
-import { toDateOnlyString } from "@/lib/dates";
+import { toDateOnlyString, phDateTimeToUTC } from "@/lib/dates";
 import { formatCurrency } from "@/lib/utils";
 import { renderRentalAgreementPdf } from "@/lib/rental-agreement-pdf";
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
 import { getSecurityDeposit, type TripType, type SignatureMethod } from "@/types/models";
 
+const PH_TIME_ZONE = "Asia/Manila";
+
 function formatAgreementDate(date: Date): string {
-  return date.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+  return date.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: PH_TIME_ZONE,
+  });
 }
 
 function formatAgreementTime(date: Date): string {
-  return date.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
+  return date.toLocaleTimeString("en-PH", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: PH_TIME_ZONE,
+  });
 }
 
 function requireString(formData: FormData, field: string): string {
@@ -60,8 +72,8 @@ async function submitRentalApplicationInner(
 
   const pickupRaw = requireString(formData, "pickup_at");
   const returnRaw = requireString(formData, "return_at");
-  const pickupAt = new Date(pickupRaw);
-  const returnAt = new Date(returnRaw);
+  const pickupAt = phDateTimeToUTC(pickupRaw);
+  const returnAt = phDateTimeToUTC(returnRaw);
   if (Number.isNaN(pickupAt.getTime()) || Number.isNaN(returnAt.getTime())) {
     throw new Error("Please provide valid rental and return dates/times.");
   }

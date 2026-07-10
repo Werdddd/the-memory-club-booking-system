@@ -1,5 +1,9 @@
 import type { DateRange } from "react-day-picker";
 
+/** The business operates in the Philippines only, which has a single fixed UTC+8 offset (no DST). */
+const PH_TIME_ZONE = "Asia/Manila";
+const PH_UTC_OFFSET = "+08:00";
+
 /** Parse a `date` column string ("YYYY-MM-DD") as a local calendar date (midnight local), never as a UTC instant. */
 export function parseDateOnly(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
@@ -63,4 +67,52 @@ export function toDayPickerRanges(
 export function combineDateAndTime(date: Date | undefined, time: string): string {
   if (!date) return "";
   return `${toDateOnlyString(date)}T${time}`;
+}
+
+/**
+ * Convert a "YYYY-MM-DDTHH:mm" wall-clock string (from a datetime-local
+ * input, or built via combineDateAndTime / `${date}T${time}`) into the UTC
+ * instant it represents, always treating the wall time as Philippine local
+ * time (UTC+8). Using `new Date(dateTimeLocal)` directly is wrong here: a
+ * date-time string with no timezone offset is parsed in whatever timezone
+ * the JS runtime happens to be in (the browser's when a customer submits
+ * the form, the server's when the value is saved), so the same "8:00 AM"
+ * can be stored as a different instant depending on where the code runs.
+ * Anchoring explicitly to +08:00 makes the result identical everywhere.
+ */
+export function phDateTimeToUTC(dateTimeLocal: string): Date {
+  return new Date(`${dateTimeLocal}:00${PH_UTC_OFFSET}`);
+}
+
+/**
+ * Extract the "HH:mm" Philippine wall-clock time from a stored UTC instant
+ * (e.g. a `timestamptz` column), for populating a `<input type="time">`.
+ * Using `date.toTimeString()` / `toLocaleTimeString()` without a timezone
+ * would instead show the time in whatever machine is running the code.
+ */
+export function toPHTimeInputValue(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PH_TIME_ZONE,
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(date);
+  const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+  return `${hour}:${minute}`;
+}
+
+/** Format a stored UTC instant as "MMM d, h:mm a" in Philippine local time, regardless of the viewer's own timezone. */
+export function formatDateTimePH(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: PH_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(iso));
 }

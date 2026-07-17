@@ -27,6 +27,7 @@ export function SignaturePad({
   const [hasDrawing, setHasDrawing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dataUriInputRef = useRef<HTMLInputElement>(null);
   const drawingRef = useRef(false);
 
   function getCanvasPoint(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -86,6 +87,14 @@ export function SignaturePad({
     const transfer = new DataTransfer();
     transfer.items.add(file);
     input.files = transfer.files;
+
+    // Also carried inline as a data URI so the server action can embed it in
+    // the PDF directly, instead of reading the just-uploaded copy back from
+    // Storage — guest submissions have no session, and the admin-only read
+    // policy on that bucket means such a read always fails for them.
+    if (dataUriInputRef.current) {
+      dataUriInputRef.current.value = canvas.toDataURL("image/png");
+    }
   }
 
   function handleClear() {
@@ -93,6 +102,7 @@ export function SignaturePad({
     const ctx = canvas?.getContext("2d");
     if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (dataUriInputRef.current) dataUriInputRef.current.value = "";
     setHasDrawing(false);
   }
 
@@ -148,6 +158,7 @@ export function SignaturePad({
             )}
           </div>
           <input ref={fileInputRef} type="file" name="signature_file" className="hidden" />
+          <input ref={dataUriInputRef} type="hidden" name="signature_data_uri" />
           <Button type="button" variant="outline" size="sm" onClick={handleClear}>
             <Eraser className="size-3.5" />
             Clear

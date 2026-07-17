@@ -116,3 +116,62 @@ export function formatDateTimePH(iso: string): string {
     hour12: true,
   }).format(new Date(iso));
 }
+
+/** Format a stored UTC instant as "MMM d, yyyy at h:mm a" in Philippine local time, regardless of the viewer's own timezone. */
+export function formatDateTimePHWithYear(iso: string): string {
+  const date = new Date(iso);
+  const datePart = new Intl.DateTimeFormat("en-US", {
+    timeZone: PH_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat("en-US", {
+    timeZone: PH_TIME_ZONE,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+  return `${datePart} at ${timePart}`;
+}
+
+/**
+ * Format a Date (any UTC instant, e.g. `pickupAt`/`returnAt` derived via
+ * phDateTimeToUTC) as its Philippine calendar date, "YYYY-MM-DD". Always use
+ * this — never toDateOnlyString — when the input represents an instant
+ * rather than an already-local calendar date: toDateOnlyString reads the
+ * runtime's own local components, which drifts by a day whenever the server
+ * process isn't running in Asia/Manila (e.g. Vercel's default UTC).
+ */
+export function toDateOnlyStringPH(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PH_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  return `${year}-${month}-${day}`;
+}
+
+/** Format a Date (any instant) as a long-form Philippine calendar date, e.g. "July 20, 2026". */
+export function formatDatePH(date: Date): string {
+  return date.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: PH_TIME_ZONE,
+  });
+}
+
+/** Format a Date (any instant) as a Philippine wall-clock time, e.g. "6:00 AM". */
+export function formatTimePH(date: Date): string {
+  return date.toLocaleTimeString("en-PH", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: PH_TIME_ZONE,
+  });
+}

@@ -47,8 +47,7 @@ ${itemLines}
 
 Total: ${data.totalAmountLabel}
 
-This booking is not yet confirmed. To settle payment and receive your official booking confirmation, please message our Facebook page:
-${FACEBOOK_PAGE_URL}
+This booking is not yet confirmed. To settle payment and receive your official booking confirmation, please message our Facebook page: The Memory Club - Camera Rental
 
 Thank you,
 The Memory Club`;

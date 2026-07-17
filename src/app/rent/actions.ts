@@ -3,31 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
-import { toDateOnlyString, phDateTimeToUTC } from "@/lib/dates";
+import {
+  toDateOnlyStringPH,
+  phDateTimeToUTC,
+  formatDatePH,
+  formatTimePH,
+} from "@/lib/dates";
 import { formatCurrency } from "@/lib/utils";
 import { renderRentalAgreementPdf } from "@/lib/rental-agreement-pdf";
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
 import { getSecurityDeposit, type TripType, type SignatureMethod } from "@/types/models";
-
-const PH_TIME_ZONE = "Asia/Manila";
-
-function formatAgreementDate(date: Date): string {
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: PH_TIME_ZONE,
-  });
-}
-
-function formatAgreementTime(date: Date): string {
-  return date.toLocaleTimeString("en-PH", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: PH_TIME_ZONE,
-  });
-}
 
 function requireString(formData: FormData, field: string): string {
   const value = String(formData.get(field) ?? "").trim();
@@ -130,23 +115,18 @@ async function submitRentalApplicationInner(
   const proofOfPaymentPath = requireString(formData, "proof_of_payment_path");
   const signaturePath =
     signatureMethod === "drawn" ? requireString(formData, "signature_path") : null;
+  // Sent inline by SignaturePad alongside the Storage upload: guest
+  // submissions have no session, and the booking-documents bucket's read
+  // policy is admin-only, so downloading the just-uploaded copy back here
+  // would always fail RLS. The stored copy (signaturePath) is still used
+  // later for admin viewing.
+  const signatureDataUri =
+    signatureMethod === "drawn" ? requireString(formData, "signature_data_uri") : null;
 
-  let signatureForPdf: { method: "typed"; text: string } | { method: "drawn"; dataUri: string };
-  if (signatureMethod === "typed") {
-    signatureForPdf = { method: "typed", text: signatureText! };
-  } else {
-    const { data: signatureBlob, error: signatureDownloadError } = await supabase.storage
-      .from("booking-documents")
-      .download(signaturePath!);
-    if (signatureDownloadError || !signatureBlob) {
-      throw new Error("Failed to read uploaded signature. Please try again.");
-    }
-    const bytes = Buffer.from(await signatureBlob.arrayBuffer());
-    signatureForPdf = {
-      method: "drawn",
-      dataUri: `data:${signatureBlob.type || "image/png"};base64,${bytes.toString("base64")}`,
-    };
-  }
+  const signatureForPdf: { method: "typed"; text: string } | { method: "drawn"; dataUri: string } =
+    signatureMethod === "typed"
+      ? { method: "typed", text: signatureText! }
+      : { method: "drawn", dataUri: signatureDataUri! };
 
   const equipmentNames = items.filter((i) => equipmentIds.includes(i.id)).map((i) => i.name);
   const addonNames = items.filter((i) => addonIds.includes(i.id)).map((i) => i.name);
@@ -155,13 +135,13 @@ async function submitRentalApplicationInner(
     fullName,
     equipmentNames,
     addonNames,
-    pickupDate: formatAgreementDate(pickupAt),
-    pickupTime: formatAgreementTime(pickupAt),
-    returnDate: formatAgreementDate(returnAt),
-    returnTime: formatAgreementTime(returnAt),
+    pickupDate: formatDatePH(pickupAt),
+    pickupTime: formatTimePH(pickupAt),
+    returnDate: formatDatePH(returnAt),
+    returnTime: formatTimePH(returnAt),
     rentalFeeLabel: formatCurrency(totalAmount),
     securityDepositLabel: formatCurrency(getSecurityDeposit(tripType)),
-    agreementDate: formatAgreementDate(new Date()),
+    agreementDate: formatDatePH(new Date()),
     signature: signatureForPdf,
   });
 
@@ -184,8 +164,8 @@ async function submitRentalApplicationInner(
       id: bookingId,
       customer_id: null,
       status: "pending",
-      start_date: toDateOnlyString(pickupAt),
-      end_date: toDateOnlyString(returnAt),
+      start_date: toDateOnlyStringPH(pickupAt),
+      end_date: toDateOnlyStringPH(returnAt),
       pickup_time: pickupAt.toISOString(),
       return_time: returnAt.toISOString(),
       total_amount: totalAmount,
@@ -232,10 +212,10 @@ async function submitRentalApplicationInner(
       fullName,
       equipmentNames,
       addonNames,
-      pickupDate: formatAgreementDate(pickupAt),
-      pickupTime: formatAgreementTime(pickupAt),
-      returnDate: formatAgreementDate(returnAt),
-      returnTime: formatAgreementTime(returnAt),
+      pickupDate: formatDatePH(pickupAt),
+      pickupTime: formatTimePH(pickupAt),
+      returnDate: formatDatePH(returnAt),
+      returnTime: formatTimePH(returnAt),
       totalAmountLabel: formatCurrency(totalAmount),
     });
   } catch (error) {

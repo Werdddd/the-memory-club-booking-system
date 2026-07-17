@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { format } from "date-fns";
 import { Eye, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/utils";
-import { formatDateTimePH } from "@/lib/dates";
+import { formatDateTimePH, formatDateTimePHWithYear } from "@/lib/dates";
 import { getBookingDocumentUrl } from "@/app/admin/bookings/actions";
 import type { BookingWithItems } from "@/types/models";
 
@@ -68,7 +67,7 @@ export function BookingDetailDialog({ booking }: { booking: BookingWithItems }) 
         <DialogHeader>
           <DialogTitle className="font-heading">{renterName}</DialogTitle>
           <DialogDescription>
-            Submitted {format(new Date(booking.created_at), "MMM d, yyyy 'at' h:mm a")}
+            Submitted {formatDateTimePHWithYear(booking.created_at)}
           </DialogDescription>
         </DialogHeader>
 

@@ -33,7 +33,7 @@ import { submitRentalApplication } from "@/app/rent/actions";
 import { createClient } from "@/lib/supabase/client";
 import { rentalDays, tieredDailyRate } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
-import { combineDateAndTime, parseDateOnly } from "@/lib/dates";
+import { combineDateAndTime, parseDateOnly, phDateTimeToUTC, formatDatePH } from "@/lib/dates";
 import {
   bookedRangesForEquipment,
   dateRangeOverlapsAny,
@@ -194,8 +194,14 @@ export function RentalForm({
 
   const days = useMemo(() => {
     if (!pickupAt || !returnAt) return 0;
-    const p = new Date(pickupAt);
-    const r = new Date(returnAt);
+    // Anchor to Philippine time here, matching how the server derives the
+    // same figure (submitRentalApplicationInner uses phDateTimeToUTC too) —
+    // parsing the naive "YYYY-MM-DDTHH:mm" string with `new Date()` instead
+    // would use the visitor's own device timezone, which can disagree with
+    // the server near day boundaries and show a different day count/total
+    // than what's actually charged.
+    const p = phDateTimeToUTC(pickupAt);
+    const r = phDateTimeToUTC(returnAt);
     if (Number.isNaN(p.getTime()) || Number.isNaN(r.getTime()) || r <= p)
       return 0;
     return rentalDays(p, r);
@@ -1140,7 +1146,7 @@ export function RentalForm({
               <p className="text-sm font-medium">Signature</p>
               <p className="text-xs text-muted-foreground">
                 Renter Name: {fullName || "________________"} · Date:{" "}
-                {formatDisplayDate(new Date())}
+                {formatDatePH(new Date())}
               </p>
               <SignaturePad validationEnabled={step === "terms"} />
             </div>

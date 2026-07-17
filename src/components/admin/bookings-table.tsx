@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Loader2, Trash2 } from "lucide-react";
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -183,6 +185,26 @@ function DeleteBookingButton({ booking }: { booking: BookingWithItems }) {
   );
 }
 
+const STATUS_FILTER_ALL = "all";
+const EQUIPMENT_FILTER_ALL = "all";
+
+function EquipmentCell({ booking }: { booking: BookingWithItems }) {
+  if (booking.booking_items.length === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  return (
+    <div className="flex max-w-64 flex-wrap gap-1">
+      {booking.booking_items.map((item) => (
+        <Badge key={item.id} variant="outline" className="font-normal">
+          {item.equipment?.name ?? "Unknown"}
+          {item.quantity > 1 && ` ×${item.quantity}`}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 export function BookingsTable({
   bookings,
   equipment,
@@ -190,62 +212,146 @@ export function BookingsTable({
   bookings: BookingWithItems[];
   equipment: Equipment[];
 }) {
-  if (bookings.length === 0) {
-    return (
-      <p className="rounded-md border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
-        No bookings yet.
-      </p>
-    );
-  }
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>(STATUS_FILTER_ALL);
+  const [equipmentFilter, setEquipmentFilter] = useState<string>(EQUIPMENT_FILTER_ALL);
+
+  const filteredBookings = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return bookings.filter((booking) => {
+      if (statusFilter !== STATUS_FILTER_ALL && booking.status !== statusFilter) {
+        return false;
+      }
+
+      if (
+        equipmentFilter !== EQUIPMENT_FILTER_ALL &&
+        !booking.booking_items.some((item) => item.equipment_id === equipmentFilter)
+      ) {
+        return false;
+      }
+
+      if (query) {
+        const name = (booking.full_name ?? booking.profiles?.full_name ?? "").toLowerCase();
+        const phone = (booking.contact_number_1 ?? booking.profiles?.phone ?? "").toLowerCase();
+        const email = (booking.email ?? "").toLowerCase();
+        if (!name.includes(query) && !phone.includes(query) && !email.includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [bookings, search, statusFilter, equipmentFilter]);
 
   return (
-    <div className="overflow-x-auto rounded-md border border-border/60">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Customer</TableHead>
-            <TableHead>Dates</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Deposit Paid</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Details</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {bookings.map((booking) => (
-            <TableRow key={booking.id}>
-              <TableCell>
-                <div className="font-medium">
-                  {booking.full_name ?? booking.profiles?.full_name ?? "Unknown customer"}
-                </div>
-                {(booking.contact_number_1 ?? booking.profiles?.phone) && (
-                  <div className="text-xs text-muted-foreground">
-                    {booking.contact_number_1 ?? booking.profiles?.phone}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="text-sm">
-                {format(parseDateOnly(booking.start_date), "MMM d, yyyy")} –{" "}
-                {format(parseDateOnly(booking.end_date), "MMM d, yyyy")}
-              </TableCell>
-              <TableCell>{formatCurrency(Number(booking.total_amount))}</TableCell>
-              <TableCell>
-                <DepositSwitch booking={booking} />
-              </TableCell>
-              <TableCell>
-                <StatusSelect booking={booking} />
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <BookingFormDialog booking={booking} equipment={equipment} />
-                  <BookingDetailDialog booking={booking} />
-                  <DeleteBookingButton booking={booking} />
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Search by customer, phone, or email…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-64"
+        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger size="sm" className="w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={STATUS_FILTER_ALL}>All statuses</SelectItem>
+            {STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {STATUS_META[s].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={equipmentFilter} onValueChange={setEquipmentFilter}>
+          <SelectTrigger size="sm" className="w-48">
+            <SelectValue placeholder="Equipment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={EQUIPMENT_FILTER_ALL}>All equipment</SelectItem>
+            {equipment.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {item.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(search || statusFilter !== STATUS_FILTER_ALL || equipmentFilter !== EQUIPMENT_FILTER_ALL) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter(STATUS_FILTER_ALL);
+              setEquipmentFilter(EQUIPMENT_FILTER_ALL);
+            }}
+          >
+            Clear filters
+          </Button>
+        )}
+      </div>
+
+      {filteredBookings.length === 0 ? (
+        <p className="rounded-md border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
+          {bookings.length === 0 ? "No bookings yet." : "No bookings match your filters."}
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-md border border-border/60">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead>Equipment</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Deposit Paid</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Details</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBookings.map((booking) => (
+                <TableRow key={booking.id}>
+                  <TableCell>
+                    <div className="font-medium">
+                      {booking.full_name ?? booking.profiles?.full_name ?? "Unknown customer"}
+                    </div>
+                    {(booking.contact_number_1 ?? booking.profiles?.phone) && (
+                      <div className="text-xs text-muted-foreground">
+                        {booking.contact_number_1 ?? booking.profiles?.phone}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {format(parseDateOnly(booking.start_date), "MMM d, yyyy")} –{" "}
+                    {format(parseDateOnly(booking.end_date), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell>
+                    <EquipmentCell booking={booking} />
+                  </TableCell>
+                  <TableCell>{formatCurrency(Number(booking.total_amount))}</TableCell>
+                  <TableCell>
+                    <DepositSwitch booking={booking} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusSelect booking={booking} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <BookingFormDialog booking={booking} equipment={equipment} />
+                      <BookingDetailDialog booking={booking} />
+                      <DeleteBookingButton booking={booking} />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

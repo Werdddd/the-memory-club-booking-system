@@ -216,7 +216,7 @@ export function RentalForm({
   const totalEstimate = useMemo(() => {
     if (days === 0) return 0;
     return selectedItems.reduce(
-      (sum, item) => sum + tieredDailyRate(item, days),
+      (sum, item) => sum + tieredDailyRate(item, days) * days,
       0,
     );
   }, [selectedItems, days]);

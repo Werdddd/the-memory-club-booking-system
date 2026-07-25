@@ -71,7 +71,7 @@ export function BookingFormDialog({
     }
     const days = rentalDays(start, end);
     const items = equipment.filter((e) => selectedEquipmentIds.has(e.id));
-    return items.reduce((sum, item) => sum + tieredDailyRate(item, days), 0);
+    return items.reduce((sum, item) => sum + tieredDailyRate(item, days) * days, 0);
   }, [startDate, endDate, pickupTime, returnTime, selectedEquipmentIds, equipment]);
 
   function applySuggestedTotal() {

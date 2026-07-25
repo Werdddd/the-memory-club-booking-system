@@ -99,7 +99,7 @@ async function submitRentalApplicationInner(
   }
 
   const totalAmount = items.reduce(
-    (sum, item) => sum + tieredDailyRate(item, days),
+    (sum, item) => sum + tieredDailyRate(item, days) * days,
     0
   );
 

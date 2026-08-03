@@ -32,7 +32,7 @@ export type EquipmentBookingRange = {
   equipment_name: string;
   start_date: string;
   end_date: string;
-  status: "confirmed" | "completed";
+  status: "confirmed" | "ongoing" | "completed";
 };
 
 const STATUS_META = {
@@ -41,6 +41,12 @@ const STATUS_META = {
     dot: "bg-blue-500",
     badgeClassName:
       "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  },
+  ongoing: {
+    label: "Ongoing",
+    dot: "bg-violet-500",
+    badgeClassName:
+      "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-400",
   },
   completed: {
     label: "Completed",
@@ -74,7 +80,6 @@ export function BookingAvailabilityCalendar({
     return eachDayOfInterval({ start, end });
   }, [month]);
 
-  const canGoToPreviousMonth = month > currentMonth;
   const todayKey = toDateOnlyString(today);
 
   function equipmentBookedOn(date: Date): EquipmentBookingRange[] {
@@ -100,6 +105,10 @@ export function BookingAvailabilityCalendar({
               Booked
             </span>
             <span className="flex items-center gap-1.5">
+              <span className={cn("inline-block size-2.5 rounded-full", STATUS_META.ongoing.dot)} />
+              Ongoing
+            </span>
+            <span className="flex items-center gap-1.5">
               <span className={cn("inline-block size-2.5 rounded-full", STATUS_META.completed.dot)} />
               Completed
             </span>
@@ -109,7 +118,6 @@ export function BookingAvailabilityCalendar({
             variant="outline"
             size="icon"
             aria-label="Previous month"
-            disabled={!canGoToPreviousMonth}
             onClick={() => setMonth((m) => subMonths(m, 1))}
           >
             <ChevronLeft className="size-4" />
@@ -141,6 +149,7 @@ export function BookingAvailabilityCalendar({
           const isPast = toDateOnlyString(day) < todayKey;
           const booked = inMonth ? equipmentBookedOn(day) : [];
           const confirmedCount = booked.filter((b) => b.status === "confirmed").length;
+          const ongoingCount = booked.filter((b) => b.status === "ongoing").length;
           const completedCount = booked.filter((b) => b.status === "completed").length;
           // Past days can't be used to start a new booking, but a past day
           // with booking history is still worth opening to see what was
@@ -160,6 +169,7 @@ export function BookingAvailabilityCalendar({
                   ? "cursor-pointer hover:bg-muted"
                   : "cursor-not-allowed bg-muted/30 text-muted-foreground/40",
                 isPast && inMonth && "text-muted-foreground/40",
+                booked.length > 0 && "bg-gold/25 hover:bg-gold/35",
                 isCurrentDay && inMonth && "ring-1 ring-inset ring-gold/50"
               )}
             >
@@ -176,6 +186,11 @@ export function BookingAvailabilityCalendar({
                   {confirmedCount > 0 && (
                     <Badge variant="outline" className={STATUS_META.confirmed.badgeClassName}>
                       {confirmedCount} booked
+                    </Badge>
+                  )}
+                  {ongoingCount > 0 && (
+                    <Badge variant="outline" className={STATUS_META.ongoing.badgeClassName}>
+                      {ongoingCount} ongoing
                     </Badge>
                   )}
                   {completedCount > 0 && (

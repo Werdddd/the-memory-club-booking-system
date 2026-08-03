@@ -72,7 +72,7 @@ async function getConfirmedBookingRanges(
         equipment_name: nameById.get(row.equipment_id)!,
         start_date: row.start_date,
         end_date: blockedEndDate(row.start_date, row.end_date),
-        status: row.status as "confirmed" | "completed",
+        status: row.status as "confirmed" | "ongoing" | "completed",
       }));
   } catch {
     return [];

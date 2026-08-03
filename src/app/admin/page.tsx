@@ -11,7 +11,7 @@ import { blockedEndDate } from "@/lib/booking-availability";
 type ConfirmedBookingRow = {
   start_date: string;
   end_date: string;
-  status: "confirmed" | "completed";
+  status: "confirmed" | "ongoing" | "completed";
   booking_items: { equipment_id: string; equipment: { name: string } | null }[];
 };
 
@@ -36,7 +36,7 @@ export default async function AdminDashboardPage() {
       supabase
         .from("bookings")
         .select("start_date, end_date, status, booking_items(equipment_id, equipment(name))")
-        .in("status", ["confirmed", "completed"])
+        .in("status", ["confirmed", "ongoing", "completed"])
         .order("start_date")
         .returns<ConfirmedBookingRow[]>(),
     ]);

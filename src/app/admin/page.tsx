@@ -6,7 +6,6 @@ import {
   BookingAvailabilityCalendar,
   type EquipmentBookingRange,
 } from "@/components/booking-availability-calendar";
-import { blockedEndDate } from "@/lib/booking-availability";
 
 type ConfirmedBookingRow = {
   start_date: string;
@@ -52,7 +51,7 @@ export default async function AdminDashboardPage() {
         equipment_id: item.equipment_id,
         equipment_name: item.equipment?.name ?? "Unknown equipment",
         start_date: booking.start_date,
-        end_date: blockedEndDate(booking.start_date, booking.end_date),
+        end_date: booking.end_date,
         status: booking.status,
       }))
   );

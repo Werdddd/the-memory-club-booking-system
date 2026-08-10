@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Camera,
+  CalendarDays,
   CalendarRange,
   PackagePlus,
   Settings,
@@ -13,6 +14,7 @@ import {
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/admin/equipment", label: "Equipment", icon: Camera },
   { href: "/admin/addons", label: "Add-Ons", icon: PackagePlus },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarRange },

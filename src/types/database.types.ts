@@ -191,6 +191,45 @@ export type Database = {
           },
         ]
       }
+      calendar_blocks: {
+        Row: {
+          block_date: string
+          created_at: string
+          created_by: string | null
+          equipment_id: string
+          id: string
+        }
+        Insert: {
+          block_date: string
+          created_at?: string
+          created_by?: string | null
+          equipment_id: string
+          id?: string
+        }
+        Update: {
+          block_date?: string
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_blocks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_blocks_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           brand: string | null
@@ -335,9 +374,9 @@ export type Database = {
       get_confirmed_equipment_bookings: {
         Args: never
         Returns: {
+          end_date: string
           equipment_id: string
           start_date: string
-          end_date: string
           status: Database["public"]["Enums"]["booking_status"]
         }[]
       }

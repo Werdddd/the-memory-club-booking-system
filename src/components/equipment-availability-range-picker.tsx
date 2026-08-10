@@ -4,11 +4,11 @@ import { useMemo } from "react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { startOfTodayPH, toDayPickerRanges } from "@/lib/dates";
-import { bookedRangesForEquipment } from "@/lib/booking-availability";
+import { startOfTodayPH, toDayPickerDates } from "@/lib/dates";
+import { blockedDatesForEquipment } from "@/lib/booking-availability";
 
 type EquipmentAvailabilityRangePickerProps = {
-  bookedRangesByEquipment: Record<string, { start_date: string; end_date: string }[]>;
+  bookedRangesByEquipment: Record<string, Set<string>>;
   selectedEquipmentIds: string[];
   value: DateRange | undefined;
   onChange: (range: DateRange | undefined) => void;
@@ -23,8 +23,8 @@ export function EquipmentAvailabilityRangePicker({
   className,
 }: EquipmentAvailabilityRangePickerProps) {
   const bookedMatchers = useMemo(() => {
-    const ranges = bookedRangesForEquipment(bookedRangesByEquipment, selectedEquipmentIds);
-    return toDayPickerRanges(ranges);
+    const dates = blockedDatesForEquipment(bookedRangesByEquipment, selectedEquipmentIds);
+    return toDayPickerDates(dates);
   }, [bookedRangesByEquipment, selectedEquipmentIds]);
 
   const disabledMatchers = useMemo(

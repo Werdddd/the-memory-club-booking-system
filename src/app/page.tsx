@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { PricingTiers } from "@/components/pricing-tiers";
 import {
   BookingAvailabilityCalendar,
-  type EquipmentBookingRange,
+  type EquipmentBookingRow,
 } from "@/components/booking-availability-calendar";
 import { Camera, CalendarCheck, PackageCheck, Sparkles } from "lucide-react";
 
@@ -55,12 +55,14 @@ async function getEquipment(): Promise<{ data: Equipment[]; error: string | null
   }
 }
 
-async function getConfirmedBookingRanges(
+async function getCalendarBlockRows(
   equipment: Equipment[]
-): Promise<EquipmentBookingRange[]> {
+): Promise<EquipmentBookingRow[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("get_confirmed_equipment_bookings");
+    const { data, error } = await supabase
+      .from("calendar_blocks")
+      .select("block_date, equipment_id");
     if (error || !data) return [];
 
     const nameById = new Map(equipment.map((e) => [e.id, e.name]));
@@ -69,9 +71,7 @@ async function getConfirmedBookingRanges(
       .map((row) => ({
         equipment_id: row.equipment_id,
         equipment_name: nameById.get(row.equipment_id)!,
-        start_date: row.start_date,
-        end_date: row.end_date,
-        status: row.status as "confirmed" | "ongoing" | "completed",
+        date: row.block_date,
       }));
   } catch {
     return [];
@@ -156,7 +156,7 @@ export default async function Home() {
   const { data: equipment, error } = await getEquipment();
   const cameras = equipment.filter((item) => item.category === "camera");
   const accessories = equipment.filter((item) => item.category !== "camera");
-  const bookingRanges = await getConfirmedBookingRanges(equipment);
+  const bookingRows = await getCalendarBlockRows(equipment);
 
   return (
     <div className="flex flex-1 flex-col bg-background">
@@ -271,7 +271,7 @@ export default async function Home() {
             </div>
 
             <div className="mt-14">
-              <BookingAvailabilityCalendar ranges={bookingRanges} />
+              <BookingAvailabilityCalendar rows={bookingRows} />
             </div>
           </div>
         </section>

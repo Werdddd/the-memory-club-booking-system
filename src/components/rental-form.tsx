@@ -35,8 +35,8 @@ import { rentalDays, tieredDailyRate } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import { combineDateAndTime, parseDateOnly, phDateTimeToUTC, formatDatePH } from "@/lib/dates";
 import {
-  bookedRangesForEquipment,
-  dateRangeOverlapsAny,
+  blockedDatesForEquipment,
+  dateRangeOverlapsBlocked,
 } from "@/lib/booking-availability";
 import { getSecurityDeposit, type TripType } from "@/types/models";
 
@@ -57,10 +57,7 @@ type RentalFormProps = {
   qrCodeUrl: string | null;
   preselectedCameraId?: string;
   preselectedDate?: string;
-  bookedRangesByEquipment: Record<
-    string,
-    { start_date: string; end_date: string }[]
-  >;
+  bookedRangesByEquipment: Record<string, Set<string>>;
 };
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -171,14 +168,14 @@ export function RentalForm({
   // on the calendar only guards live drag-selection, not selection changes
   // that happen after the fact.
   useEffect(() => {
-    const booked = bookedRangesForEquipment(
+    const booked = blockedDatesForEquipment(
       bookedRangesByEquipment,
       selectedEquipmentIds,
     );
     let didClear = false;
     setDateRange((current) => {
       if (!current?.from) return current;
-      if (dateRangeOverlapsAny(current.from, current.to, booked)) {
+      if (dateRangeOverlapsBlocked(current.from, current.to, booked)) {
         didClear = true;
         return undefined;
       }

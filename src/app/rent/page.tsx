@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { RentalForm, type RentalEquipmentOption } from "@/components/rental-form";
-import { groupBookedRowsByEquipment } from "@/lib/booking-availability";
+import { groupBlockedRowsByEquipment } from "@/lib/booking-availability";
 
 export default async function RentPage({
   searchParams,
@@ -22,10 +22,10 @@ export default async function RentPage({
       .order("name"),
     supabase.from("equipment_addons").select("equipment_id, addon_id"),
     supabase.from("payment_settings").select("qr_code_url").eq("id", 1).single(),
-    supabase.rpc("get_confirmed_equipment_bookings"),
+    supabase.from("calendar_blocks").select("equipment_id, block_date"),
   ]);
 
-  const bookedRangesByEquipment = groupBookedRowsByEquipment(bookedRes.data ?? []);
+  const bookedRangesByEquipment = groupBlockedRowsByEquipment(bookedRes.data ?? []);
 
   const equipment = equipmentRes.data ?? [];
   const cameras: RentalEquipmentOption[] = equipment

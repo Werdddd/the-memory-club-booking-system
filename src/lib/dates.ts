@@ -1,5 +1,3 @@
-import type { DateRange } from "react-day-picker";
-
 /** The business operates in the Philippines only, which has a single fixed UTC+8 offset (no DST). */
 const PH_TIME_ZONE = "Asia/Manila";
 const PH_UTC_OFFSET = "+08:00";
@@ -53,14 +51,9 @@ export function dateRangesOverlap(
   return aStart <= bEnd && bStart <= aEnd;
 }
 
-/** Build react-day-picker DateRange matchers straight from date-only rows (inclusive both ends, matches DayPicker's own DateRange contract). */
-export function toDayPickerRanges(
-  ranges: { start_date: string; end_date: string }[]
-): DateRange[] {
-  return ranges.map((r) => ({
-    from: parseDateOnly(r.start_date),
-    to: parseDateOnly(r.end_date),
-  }));
+/** Build a react-day-picker `disabled`/`modifiers` Date[] matcher straight from date-only strings. */
+export function toDayPickerDates(dates: Iterable<string>): Date[] {
+  return [...dates].map(parseDateOnly);
 }
 
 /** Combine a calendar date with a "HH:mm" time string into a "YYYY-MM-DDTHH:mm" string, the same shape a native datetime-local input produces. */

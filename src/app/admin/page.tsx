@@ -1,23 +1,24 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Camera, CalendarClock, CheckCircle2, Banknote } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import {
   BookingAvailabilityCalendar,
-  type EquipmentBookingRange,
+  type EquipmentBookingRow,
 } from "@/components/booking-availability-calendar";
 
-type ConfirmedBookingRow = {
-  start_date: string;
-  end_date: string;
-  status: "confirmed" | "ongoing" | "completed";
-  booking_items: { equipment_id: string; equipment: { name: string } | null }[];
+type CalendarBlockRow = {
+  block_date: string;
+  equipment_id: string;
+  equipment: { name: string } | null;
 };
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  const [equipmentCount, pendingBookings, activeBookings, revenue, confirmedBookings] =
+  const [equipmentCount, pendingBookings, activeBookings, revenue, calendarBlocks] =
     await Promise.all([
       supabase.from("equipment").select("id", { count: "exact", head: true }),
       supabase
@@ -33,11 +34,10 @@ export default async function AdminDashboardPage() {
         .select("total_amount")
         .eq("status", "completed"),
       supabase
-        .from("bookings")
-        .select("start_date, end_date, status, booking_items(equipment_id, equipment(name))")
-        .in("status", ["confirmed", "ongoing", "completed"])
-        .order("start_date")
-        .returns<ConfirmedBookingRow[]>(),
+        .from("calendar_blocks")
+        .select("block_date, equipment_id, equipment(name)")
+        .order("block_date")
+        .returns<CalendarBlockRow[]>(),
     ]);
 
   const totalRevenue = (revenue.data ?? []).reduce(
@@ -45,16 +45,11 @@ export default async function AdminDashboardPage() {
     0
   );
 
-  const bookingRanges: EquipmentBookingRange[] = (confirmedBookings.data ?? []).flatMap(
-    (booking) =>
-      booking.booking_items.map((item) => ({
-        equipment_id: item.equipment_id,
-        equipment_name: item.equipment?.name ?? "Unknown equipment",
-        start_date: booking.start_date,
-        end_date: booking.end_date,
-        status: booking.status,
-      }))
-  );
+  const bookingRows: EquipmentBookingRow[] = (calendarBlocks.data ?? []).map((block) => ({
+    equipment_id: block.equipment_id,
+    equipment_name: block.equipment?.name ?? "Unknown equipment",
+    date: block.block_date,
+  }));
 
   const stats = [
     {
@@ -103,13 +98,16 @@ export default async function AdminDashboardPage() {
       </div>
 
       <Card className="mt-8">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Booking Calendar</CardTitle>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/calendar">Manage Calendar</Link>
+          </Button>
         </CardHeader>
         <CardContent>
           <BookingAvailabilityCalendar
-            ranges={bookingRanges}
-            emptyMessage="No bookings yet."
+            rows={bookingRows}
+            emptyMessage="No dates marked as booked yet."
           />
         </CardContent>
       </Card>

@@ -39,12 +39,18 @@ import {
   dateRangeOverlapsBlocked,
 } from "@/lib/booking-availability";
 import { getSecurityDeposit, type TripType } from "@/types/models";
+import {
+  PAYMENT_TERMS,
+  RENTAL_AGREEMENT_SECTIONS,
+  formatAgreementItem,
+} from "@/lib/rental-agreement-terms";
 
 export type RentalEquipmentOption = {
   id: string;
   name: string;
   brand: string | null;
   model: string | null;
+  serial_number: string | null;
   daily_rate: number;
   extended_daily_rate: number;
   image_url: string | null;
@@ -222,12 +228,10 @@ export function RentalForm({
   const balanceDue = totalEstimate - downPayment;
   const securityDeposit = getSecurityDeposit(tripType);
 
-  const selectedCameraNames = cameras
-    .filter((c) => selectedCameraIds.has(c.id))
-    .map((c) => c.name);
-  const selectedAddonNames = accessories
-    .filter((a) => effectiveAddonIds.has(a.id))
-    .map((a) => a.name);
+  const selectedCameras = cameras.filter((c) => selectedCameraIds.has(c.id));
+  const selectedAddons = accessories.filter((a) => effectiveAddonIds.has(a.id));
+  const selectedCameraNames = selectedCameras.map((c) => c.name);
+  const selectedAddonNames = selectedAddons.map((a) => a.name);
 
   function formatDisplayDate(date: Date | undefined) {
     if (!date) return "________________";
@@ -877,22 +881,40 @@ export function RentalForm({
                 <p className="font-semibold text-foreground">
                   1. RENTAL DETAILS
                 </p>
+                <p>Equipment Rented:</p>
+                {selectedCameras.length > 0 ? (
+                  <ul className="list-disc space-y-1 pl-4">
+                    {selectedCameras.map((c) => (
+                      <li key={c.id}>
+                        {formatAgreementItem(
+                          { name: c.name, serialNumber: c.serial_number },
+                          true,
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>________________</p>
+                )}
+                <p>Accessories Included:</p>
+                {selectedAddons.length > 0 ? (
+                  <ul className="list-disc space-y-1 pl-4">
+                    {selectedAddons.map((a) => (
+                      <li key={a.id}>
+                        {formatAgreementItem(
+                          { name: a.name, serialNumber: a.serial_number },
+                          false,
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>None</p>
+                )}
                 <p>
-                  Equipment Rented:{" "}
-                  {selectedCameraNames.length > 0
-                    ? selectedCameraNames.join(", ")
-                    : "________________"}
-                </p>
-                <p>
-                  Accessories Included:{" "}
-                  {selectedAddonNames.length > 0
-                    ? selectedAddonNames.join(", ")
-                    : "None"}
-                </p>
-                <p>
-                  The Renter confirms that all equipment and accessories listed
-                  above were received complete, clean, and in good working
-                  condition.
+                  The serial numbers listed above identify the specific units
+                  released to the Renter. The Renter shall return the same
+                  units bearing the same serial numbers.
                 </p>
               </div>
 
@@ -916,216 +938,34 @@ export function RentalForm({
               <div className="space-y-1">
                 <p className="font-semibold text-foreground">3. PAYMENT</p>
                 <p>Rental Fee: {formatCurrency(totalEstimate)}</p>
+                <p>
+                  Reservation Fee (50% Down Payment):{" "}
+                  {formatCurrency(downPayment)}
+                </p>
                 <p>Security Deposit: {formatCurrency(securityDeposit)}</p>
-                <p>
-                  Payments shall be made through the approved payment methods of
-                  The Memory Club.
-                </p>
-                <p>
-                  The security deposit shall be refunded within 24 hours after
-                  the equipment has been returned, inspected, and confirmed to
-                  be complete and in satisfactory condition, less any applicable
-                  deductions for damages, late fees, or other outstanding
-                  charges.
-                </p>
+                {PAYMENT_TERMS.map((text) => (
+                  <p key={text}>{text}</p>
+                ))}
               </div>
 
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">
-                  4. RENTER&apos;S RESPONSIBILITIES
-                </p>
-                <p>The Renter agrees to:</p>
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>
-                    Handle the equipment with reasonable care at all times.
-                  </li>
-                  <li>
-                    Keep the equipment safe from loss, theft, water damage, sand
-                    damage, accidental drops, impact, misuse, or any other form
-                    of damage.
-                  </li>
-                  <li>
-                    Return all rented equipment and accessories complete and in
-                    the same condition as received, except for normal wear and
-                    tear.
-                  </li>
-                  <li>
-                    Immediately notify The Memory Club of any damage,
-                    malfunction, loss, or theft involving the equipment.
-                  </li>
-                  <li>
-                    Not lend, transfer, sublease, or allow any person other than
-                    the Renter to use the rented equipment without the prior
-                    written consent of The Memory Club. The Renter remains fully
-                    responsible for the equipment throughout the rental period,
-                    regardless of who is using it.
-                  </li>
-                  <li>
-                    Not modify, dismantle, or attempt to repair the equipment.
-                  </li>
-                </ul>
-                <p>
-                  For documentation purposes, The Memory Club may provide photos
-                  or a video recording showing the condition of the equipment
-                  prior to release.
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">5. LATE RETURNS</p>
-                <p>
-                  The equipment must be returned on the agreed return date and
-                  time.
-                </p>
-                <p>Late returns shall incur the following charges:</p>
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>₱200 per hour of delay.</li>
-                  <li>
-                    ₱1,000 per full day for every day the equipment remains
-                    unreturned beyond the agreed return date.
-                  </li>
-                </ul>
-                <p>Late fees may be deducted from the security deposit.</p>
-                <p>
-                  Failure to return the equipment within twenty-four (24) hours
-                  without prior communication may be considered a breach of this
-                  Agreement and may result in legal action and recovery of all
-                  applicable costs.
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">
-                  6. DAMAGE, LOSS &amp; LIABILITY
-                </p>
-                <p>
-                  The Renter assumes full responsibility for the rented
-                  equipment from the time it is received until it is returned
-                  and accepted by The Memory Club.
-                </p>
-                <p>In the event of damage, loss, or theft:</p>
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>
-                    The Renter shall be responsible for the full cost of repair
-                    or replacement, depending on the extent of the damage.
-                  </li>
-                  <li>
-                    All inspections, repair decisions, and replacement
-                    determinations shall be made solely by The Memory Club.
-                  </li>
-                  <li>
-                    The Renter shall not repair or attempt to repair the
-                    equipment through any third-party technician or service
-                    center without the prior written approval of The Memory
-                    Club. Any unauthorized repair or modification shall be
-                    treated as additional damage, and the Renter shall remain
-                    liable for all resulting costs.
-                  </li>
-                  <li>
-                    If the equipment is declared beyond economical repair, lost,
-                    or stolen, the Renter agrees to pay the full replacement
-                    cost of a brand-new equivalent unit based on its current
-                    market value.
-                  </li>
-                  <li>
-                    The security deposit may be partially or fully forfeited
-                    depending on the extent of the damage or outstanding
-                    obligations.
-                  </li>
-                  <li>
-                    If the equipment becomes unavailable for confirmed bookings
-                    due to damage caused during the rental period, the Renter
-                    may also be held responsible for the resulting loss of
-                    rental income.
-                  </li>
-                </ul>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">
-                  7. BREACH OF AGREEMENT
-                </p>
-                <p>
-                  Failure to comply with any provision of this Agreement shall
-                  constitute a breach of contract.
-                </p>
-                <p>Upon breach, The Memory Club reserves the right to:</p>
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>Recover the rented equipment immediately;</li>
-                  <li>
-                    Charge all unpaid rental fees, late fees, repair costs, or
-                    replacement costs;
-                  </li>
-                  <li>
-                    Retain all or part of the security deposit where applicable;
-                    and
-                  </li>
-                  <li>
-                    Pursue any legal remedies available under the laws of the
-                    Republic of the Philippines.
-                  </li>
-                </ul>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">
-                  8. GOVERNING LAW
-                </p>
-                <p>
-                  This Agreement shall be governed by and interpreted in
-                  accordance with the laws of the Republic of the Philippines.
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">
-                  9. FORCE MAJEURE
-                </p>
-                <p>
-                  Neither party shall be held liable for delays or failure to
-                  perform their obligations under this Agreement when caused by
-                  events beyond their reasonable control, including but not
-                  limited to natural disasters, typhoons, floods, earthquakes,
-                  government restrictions, or other unforeseen emergencies.
-                </p>
-                <p>
-                  The Renter must notify The Memory Club as soon as reasonably
-                  possible if such an event affects the return of the equipment.
-                  Any extension of the rental period or waiver of applicable
-                  fees shall be solely at the discretion of The Memory Club and
-                  must be confirmed in writing.
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">
-                  10. ACKNOWLEDGMENT
-                </p>
-                <p>By signing below, the Renter confirms that:</p>
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>
-                    They have carefully read and fully understood this
-                    Agreement.
-                  </li>
-                  <li>
-                    They agree to comply with all the terms and conditions
-                    stated herein.
-                  </li>
-                  <li>
-                    They acknowledge receipt of the rented equipment and
-                    accessories in good working condition.
-                  </li>
-                  <li>
-                    They accept full responsibility for the rented equipment
-                    throughout the entire rental period.
-                  </li>
-                  <li>
-                    They understand that failure to comply with this Agreement
-                    may result in additional charges and legal action where
-                    necessary.
-                  </li>
-                </ul>
-              </div>
+              {RENTAL_AGREEMENT_SECTIONS.map((section) => (
+                <div key={section.title} className="space-y-1">
+                  <p className="font-semibold text-foreground">
+                    {section.title}
+                  </p>
+                  {section.blocks.map((block, i) =>
+                    block.type === "p" ? (
+                      <p key={i}>{block.text}</p>
+                    ) : (
+                      <ul key={i} className="list-disc space-y-1 pl-4">
+                        {block.items.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ),
+                  )}
+                </div>
+              ))}
             </div>
 
             <label className="flex cursor-pointer items-start gap-2 text-sm">

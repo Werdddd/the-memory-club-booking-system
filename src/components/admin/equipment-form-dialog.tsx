@@ -200,6 +200,16 @@ export function EquipmentFormDialog({ equipment }: { equipment?: Equipment }) {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="serial_number">Serial Number</Label>
+              <Input
+                id="serial_number"
+                name="serial_number"
+                defaultValue={equipment?.serial_number ?? ""}
+                placeholder="Shown on the customer's rental agreement"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="daily_rate">Rate — 1-3 days (₱)</Label>
               <Input
                 id="daily_rate"

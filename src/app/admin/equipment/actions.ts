@@ -9,6 +9,7 @@ export type EquipmentInput = {
   category: EquipmentCategory;
   brand: string;
   model: string;
+  serial_number: string;
   daily_rate: number;
   extended_daily_rate: number;
   condition: EquipmentCondition;
@@ -22,6 +23,7 @@ function parseForm(formData: FormData): EquipmentInput {
     category: String(formData.get("category") ?? "camera") as EquipmentCategory,
     brand: String(formData.get("brand") ?? ""),
     model: String(formData.get("model") ?? ""),
+    serial_number: String(formData.get("serial_number") ?? "").trim(),
     daily_rate: Number(formData.get("daily_rate") ?? 0),
     extended_daily_rate: Number(formData.get("extended_daily_rate") ?? 0),
     condition: String(formData.get("condition") ?? "good") as EquipmentCondition,
@@ -60,6 +62,7 @@ export async function createEquipment(formData: FormData) {
     category: input.category,
     brand: input.brand || null,
     model: input.model || null,
+    serial_number: input.serial_number || null,
     daily_rate: input.daily_rate,
     extended_daily_rate: input.extended_daily_rate,
     condition: input.condition,
@@ -86,6 +89,7 @@ export async function updateEquipment(id: string, formData: FormData) {
       category: input.category,
       brand: input.brand || null,
       model: input.model || null,
+      serial_number: input.serial_number || null,
       daily_rate: input.daily_rate,
       extended_daily_rate: input.extended_daily_rate,
       condition: input.condition,

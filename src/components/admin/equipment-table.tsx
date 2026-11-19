@@ -102,6 +102,11 @@ export function EquipmentTable({ equipment }: { equipment: Equipment[] }) {
                     {[item.brand, item.model].filter(Boolean).join(" ")}
                   </div>
                 )}
+                {item.serial_number && (
+                  <div className="text-xs text-muted-foreground">
+                    S/N: {item.serial_number}
+                  </div>
+                )}
               </TableCell>
               <TableCell className="capitalize">{item.category}</TableCell>
               <TableCell className="text-sm">

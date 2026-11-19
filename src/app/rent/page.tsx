@@ -16,7 +16,7 @@ export default async function RentPage({
     supabase
       .from("equipment")
       .select(
-        "id, name, category, brand, model, daily_rate, extended_daily_rate, image_url, is_available"
+        "id, name, category, brand, model, serial_number, daily_rate, extended_daily_rate, image_url, is_available"
       )
       .eq("is_available", true)
       .order("name"),
@@ -35,6 +35,7 @@ export default async function RentPage({
       name: e.name,
       brand: e.brand,
       model: e.model,
+      serial_number: e.serial_number,
       daily_rate: Number(e.daily_rate),
       extended_daily_rate: Number(e.extended_daily_rate),
       image_url: e.image_url,
@@ -46,6 +47,7 @@ export default async function RentPage({
       name: e.name,
       brand: e.brand,
       model: e.model,
+      serial_number: e.serial_number,
       daily_rate: Number(e.daily_rate),
       extended_daily_rate: Number(e.extended_daily_rate),
       image_url: e.image_url,

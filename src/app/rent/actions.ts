@@ -86,7 +86,7 @@ async function submitRentalApplicationInner(
   const allIds = [...equipmentIds, ...addonIds];
   const { data: items, error: itemsError } = await supabase
     .from("equipment")
-    .select("id, name, daily_rate, extended_daily_rate, is_available")
+    .select("id, name, serial_number, daily_rate, extended_daily_rate, is_available")
     .in("id", allIds);
 
   if (itemsError) throw new Error(itemsError.message);
@@ -128,18 +128,25 @@ async function submitRentalApplicationInner(
       ? { method: "typed", text: signatureText! }
       : { method: "drawn", dataUri: signatureDataUri! };
 
-  const equipmentNames = items.filter((i) => equipmentIds.includes(i.id)).map((i) => i.name);
-  const addonNames = items.filter((i) => addonIds.includes(i.id)).map((i) => i.name);
+  const equipmentItems = items.filter((i) => equipmentIds.includes(i.id));
+  const addonItems = items.filter((i) => addonIds.includes(i.id));
+  const equipmentNames = equipmentItems.map((i) => i.name);
+  const addonNames = addonItems.map((i) => i.name);
+  const toAgreementItem = (i: (typeof items)[number]) => ({
+    name: i.name,
+    serialNumber: i.serial_number,
+  });
 
   const agreementPdf = await renderRentalAgreementPdf({
     fullName,
-    equipmentNames,
-    addonNames,
+    equipment: equipmentItems.map(toAgreementItem),
+    addons: addonItems.map(toAgreementItem),
     pickupDate: formatDatePH(pickupAt),
     pickupTime: formatTimePH(pickupAt),
     returnDate: formatDatePH(returnAt),
     returnTime: formatTimePH(returnAt),
     rentalFeeLabel: formatCurrency(totalAmount),
+    reservationFeeLabel: formatCurrency(totalAmount / 2),
     securityDepositLabel: formatCurrency(getSecurityDeposit(tripType)),
     agreementDate: formatDatePH(new Date()),
     signature: signatureForPdf,

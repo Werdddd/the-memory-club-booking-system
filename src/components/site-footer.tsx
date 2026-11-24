@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { AdminLoginDialog } from "@/components/admin-login-dialog";
 import { Logo } from "@/components/logo";
@@ -25,15 +26,15 @@ export function SiteFooter() {
               Quick Links
             </h3>
             <nav className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
-              <a href="#catalog" className="transition-colors hover:text-foreground">
+              <Link href="/#catalog" className="transition-colors hover:text-foreground">
                 Equipment
-              </a>
-              <a
-                href="#how-it-works"
-                className="transition-colors hover:text-foreground"
-              >
+              </Link>
+              <Link href="/gallery" className="transition-colors hover:text-foreground">
+                Gallery
+              </Link>
+              <Link href="/#how-it-works" className="transition-colors hover:text-foreground">
                 How It Works
-              </a>
+              </Link>
               <a href="#contact" className="transition-colors hover:text-foreground">
                 Contact
               </a>

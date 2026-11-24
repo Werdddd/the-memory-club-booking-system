@@ -20,10 +20,13 @@ import { getBookingDocumentUrl } from "@/app/admin/bookings/actions";
 import type { BookingWithItems } from "@/types/models";
 
 const DOCUMENT_FIELDS = [
-  { key: "id_document_1_path", label: "Government ID #1" },
-  { key: "id_document_2_path", label: "Government ID #2" },
+  { key: "id_document_1_path", label: "Government ID #1 (Front)" },
+  { key: "id_document_1_back_path", label: "Government ID #1 (Back)" },
+  { key: "id_document_2_path", label: "Government ID #2 (Front)" },
+  { key: "id_document_2_back_path", label: "Government ID #2 (Back)" },
   { key: "proof_of_billing_path", label: "Proof of Billing" },
   { key: "selfie_with_id_path", label: "Selfie with ID" },
+  { key: "handwritten_note_path", label: "Handwritten Note with IDs" },
   { key: "proof_of_payment_path", label: "Proof of Payment" },
 ] as const satisfies ReadonlyArray<{ key: keyof BookingWithItems; label: string }>;
 
@@ -35,6 +38,7 @@ export function BookingDetailDialog({ booking }: { booking: BookingWithItems }) 
   const documentPaths = DOCUMENT_FIELDS.map((f) => booking[f.key]).filter(
     (v): v is string => typeof v === "string" && v.length > 0
   );
+  booking.travel_document_paths?.forEach((p) => documentPaths.push(p));
   if (booking.signature_path) documentPaths.push(booking.signature_path);
   if (booking.agreement_pdf_path) documentPaths.push(booking.agreement_pdf_path);
 
@@ -161,6 +165,31 @@ export function BookingDetailDialog({ booking }: { booking: BookingWithItems }) 
                     </a>
                   );
                 })}
+              </div>
+            )}
+            {!loading && booking.id_number_1 && (
+              <p className="mt-3 text-muted-foreground">
+                ID #1 No.: {booking.id_number_1}
+                {booking.id_number_2 && <> · ID #2 No.: {booking.id_number_2}</>}
+              </p>
+            )}
+            {!loading && booking.travel_document_paths?.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-xs text-muted-foreground">Travel Documents</p>
+                <ul className="space-y-1">
+                  {booking.travel_document_paths.map((p, i) => (
+                    <li key={p}>
+                      <a
+                        href={urls[p] ?? "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gold underline-offset-2 hover:underline"
+                      >
+                        Travel document {i + 1}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </section>

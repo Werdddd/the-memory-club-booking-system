@@ -69,7 +69,13 @@ export type Booking = {
   facebook_link: string | null;
   trip_type: TripType;
   id_document_1_path: string | null;
+  id_document_1_back_path: string | null;
   id_document_2_path: string | null;
+  id_document_2_back_path: string | null;
+  id_number_1: string | null;
+  id_number_2: string | null;
+  handwritten_note_path: string | null;
+  travel_document_paths: string[];
   proof_of_billing_path: string | null;
   selfie_with_id_path: string | null;
   proof_of_payment_path: string | null;
@@ -109,5 +115,20 @@ export type Profile = {
   full_name: string | null;
   phone: string | null;
   role: "admin" | "customer";
+  created_at: string;
+};
+
+export type GalleryMediaType = "photo" | "video";
+
+export type GalleryItem = {
+  id: string;
+  media_type: GalleryMediaType;
+  storage_path: string;
+  url: string;
+  caption: string | null;
+  renter_credit: string | null;
+  equipment_id: string | null;
+  is_featured: boolean;
+  is_hidden: boolean;
   created_at: string;
 };

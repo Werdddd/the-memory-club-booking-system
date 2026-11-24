@@ -5,8 +5,9 @@ import { Logo } from "@/components/logo";
 import { ModeToggle } from "@/components/mode-toggle";
 
 const NAV_LINKS = [
-  { href: "#catalog", label: "Equipment" },
-  { href: "#how-it-works", label: "How It Works" },
+  { href: "/#catalog", label: "Equipment" },
+  { href: "/gallery", label: "Gallery" },
+  { href: "/#how-it-works", label: "How It Works" },
   { href: "#contact", label: "Contact" },
 ];
 

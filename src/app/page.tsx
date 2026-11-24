@@ -11,6 +11,8 @@ import {
   BookingAvailabilityCalendar,
   type EquipmentBookingRow,
 } from "@/components/booking-availability-calendar";
+import { GalleryTeaser } from "@/components/gallery/gallery-teaser";
+import type { GalleryItem } from "@/types/models";
 import { Camera, CalendarCheck, PackageCheck, Sparkles } from "lucide-react";
 
 type Equipment = {
@@ -96,6 +98,26 @@ const STEPS = [
   },
 ];
 
+async function getGalleryPreview(): Promise<GalleryItem[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("gallery_items")
+      .select(
+        "id, media_type, storage_path, url, caption, renter_credit, equipment_id, is_featured, is_hidden, created_at",
+      )
+      .eq("is_hidden", false)
+      .order("is_featured", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .returns<GalleryItem[]>();
+    if (error) return [];
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 function EquipmentCard({ item }: { item: Equipment }) {
   return (
     <Card
@@ -156,7 +178,11 @@ export default async function Home() {
   const { data: equipment, error } = await getEquipment();
   const cameras = equipment.filter((item) => item.category === "camera");
   const accessories = equipment.filter((item) => item.category !== "camera");
-  const bookingRows = await getCalendarBlockRows(equipment);
+  const [bookingRows, galleryPreview] = await Promise.all([
+    getCalendarBlockRows(equipment),
+    getGalleryPreview(),
+  ]);
+  const cameraNames = Object.fromEntries(equipment.map((e) => [e.id, e.name]));
 
   return (
     <div className="flex flex-1 flex-col bg-background">
@@ -306,6 +332,9 @@ export default async function Home() {
             </div>
           </div>
         </section>
+
+        {/* Gallery preview */}
+        <GalleryTeaser items={galleryPreview} cameraNames={cameraNames} />
 
         {/* CTA banner */}
         <section className="border-t border-border/50">

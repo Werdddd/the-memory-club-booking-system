@@ -110,6 +110,18 @@ async function submitRentalApplicationInner(
   const folder = requireString(formData, "folder");
   const idDocument1Path = requireString(formData, "id_document_1_path");
   const idDocument2Path = requireString(formData, "id_document_2_path");
+  const idDocument1BackPath = requireString(formData, "id_document_1_back_path");
+  const idDocument2BackPath = requireString(formData, "id_document_2_back_path");
+  const handwrittenNotePath = requireString(formData, "handwritten_note_path");
+  const travelDocumentPaths = formData
+    .getAll("travel_document_paths")
+    .map(String)
+    .filter(Boolean);
+  if (tripType === "international" && travelDocumentPaths.length === 0) {
+    throw new Error("Please upload your travel documents (e-ticket, booking or itinerary).");
+  }
+  const idNumber1 = requireString(formData, "id_number_1");
+  const idNumber2 = requireString(formData, "id_number_2");
   const proofOfBillingPath = requireString(formData, "proof_of_billing_path");
   const selfieWithIdPath = requireString(formData, "selfie_with_id_path");
   const proofOfPaymentPath = requireString(formData, "proof_of_payment_path");
@@ -186,6 +198,12 @@ async function submitRentalApplicationInner(
       trip_type: tripType,
       id_document_1_path: idDocument1Path,
       id_document_2_path: idDocument2Path,
+      id_document_1_back_path: idDocument1BackPath,
+      id_document_2_back_path: idDocument2BackPath,
+      id_number_1: idNumber1,
+      id_number_2: idNumber2,
+      handwritten_note_path: handwrittenNotePath,
+      travel_document_paths: travelDocumentPaths,
       proof_of_billing_path: proofOfBillingPath,
       selfie_with_id_path: selfieWithIdPath,
       proof_of_payment_path: proofOfPaymentPath,

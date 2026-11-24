@@ -95,8 +95,14 @@ export type Database = {
           facebook_link: string | null
           full_name: string | null
           id: string
+          handwritten_note_path: string | null
+          travel_document_paths: string[]
+          id_document_1_back_path: string | null
           id_document_1_path: string | null
+          id_document_2_back_path: string | null
           id_document_2_path: string | null
+          id_number_1: string | null
+          id_number_2: string | null
           notes: string | null
           pickup_time: string | null
           proof_of_billing_path: string | null
@@ -128,8 +134,14 @@ export type Database = {
           facebook_link?: string | null
           full_name?: string | null
           id?: string
+          handwritten_note_path?: string | null
+          travel_document_paths?: string[]
+          id_document_1_back_path?: string | null
           id_document_1_path?: string | null
+          id_document_2_back_path?: string | null
           id_document_2_path?: string | null
+          id_number_1?: string | null
+          id_number_2?: string | null
           notes?: string | null
           pickup_time?: string | null
           proof_of_billing_path?: string | null
@@ -161,8 +173,14 @@ export type Database = {
           facebook_link?: string | null
           full_name?: string | null
           id?: string
+          handwritten_note_path?: string | null
+          travel_document_paths?: string[]
+          id_document_1_back_path?: string | null
           id_document_1_path?: string | null
+          id_document_2_back_path?: string | null
           id_document_2_path?: string | null
+          id_number_1?: string | null
+          id_number_2?: string | null
           notes?: string | null
           pickup_time?: string | null
           proof_of_billing_path?: string | null
@@ -317,6 +335,63 @@ export type Database = {
           },
         ]
       }
+      gallery_items: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          equipment_id: string | null
+          id: string
+          is_featured: boolean
+          is_hidden: boolean
+          media_type: Database["public"]["Enums"]["gallery_media_type"]
+          renter_credit: string | null
+          storage_path: string
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          media_type: Database["public"]["Enums"]["gallery_media_type"]
+          renter_credit?: string | null
+          storage_path: string
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          media_type?: Database["public"]["Enums"]["gallery_media_type"]
+          renter_credit?: string | null
+          storage_path?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_settings: {
         Row: {
           id: number
@@ -389,6 +464,7 @@ export type Database = {
         | "ongoing"
         | "completed"
         | "cancelled"
+      gallery_media_type: "photo" | "video"
       equipment_category:
         | "camera"
         | "lens"
@@ -542,6 +618,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      gallery_media_type: ["photo", "video"],
       equipment_category: [
         "camera",
         "lens",

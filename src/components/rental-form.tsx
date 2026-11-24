@@ -98,6 +98,32 @@ async function uploadBookingFile(
   return path;
 }
 
+async function uploadBookingFiles(
+  folder: string,
+  formData: FormData,
+  field: string,
+): Promise<string[]> {
+  const files = formData
+    .getAll(field)
+    .filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) {
+    throw new Error(`Missing required file: ${field.replace(/_/g, " ")}`);
+  }
+  return Promise.all(
+    files.map(async (file, i) => {
+      const ext = file.name.split(".").pop();
+      const path = `${folder}/${field}_${i + 1}${ext ? `.${ext}` : ""}`;
+      const { error } = await createClient()
+        .storage.from("booking-documents")
+        .upload(path, file, { contentType: file.type });
+      if (error) {
+        throw new Error(`Upload failed (${field.replace(/_/g, " ")}): ${error.message}`);
+      }
+      return path;
+    }),
+  );
+}
+
 export function RentalForm({
   cameras,
   accessories,
@@ -299,16 +325,26 @@ export function RentalForm({
         const [
           idDocument1Path,
           idDocument2Path,
+          idDocument1BackPath,
+          idDocument2BackPath,
+          handwrittenNotePath,
           proofOfBillingPath,
           selfieWithIdPath,
           proofOfPaymentPath,
         ] = await Promise.all([
           uploadBookingFile(folder, formData, "id_document_1"),
           uploadBookingFile(folder, formData, "id_document_2"),
+          uploadBookingFile(folder, formData, "id_document_1_back"),
+          uploadBookingFile(folder, formData, "id_document_2_back"),
+          uploadBookingFile(folder, formData, "handwritten_note"),
           uploadBookingFile(folder, formData, "proof_of_billing"),
           uploadBookingFile(folder, formData, "selfie_with_id"),
           uploadBookingFile(folder, formData, "proof_of_payment"),
         ]);
+        const travelDocumentPaths =
+          tripType === "international"
+            ? await uploadBookingFiles(folder, formData, "travel_documents")
+            : [];
         const signaturePath =
           signatureMethod === "drawn"
             ? await uploadBookingFile(folder, formData, "signature_file")
@@ -316,6 +352,10 @@ export function RentalForm({
 
         formData.delete("id_document_1");
         formData.delete("id_document_2");
+        formData.delete("id_document_1_back");
+        formData.delete("id_document_2_back");
+        formData.delete("handwritten_note");
+        formData.delete("travel_documents");
         formData.delete("proof_of_billing");
         formData.delete("selfie_with_id");
         formData.delete("proof_of_payment");
@@ -324,6 +364,12 @@ export function RentalForm({
         formData.set("folder", folder);
         formData.set("id_document_1_path", idDocument1Path);
         formData.set("id_document_2_path", idDocument2Path);
+        formData.set("id_document_1_back_path", idDocument1BackPath);
+        formData.set("id_document_2_back_path", idDocument2BackPath);
+        formData.set("handwritten_note_path", handwrittenNotePath);
+        travelDocumentPaths.forEach((p) =>
+          formData.append("travel_document_paths", p),
+        );
         formData.set("proof_of_billing_path", proofOfBillingPath);
         formData.set("selfie_with_id_path", selfieWithIdPath);
         formData.set("proof_of_payment_path", proofOfPaymentPath);
@@ -641,51 +687,141 @@ export function RentalForm({
               <ShieldCheck className="size-4 text-gold" /> Verification
             </CardTitle>
             <CardDescription>
-              Two valid government-issued primary IDs, one proof of billing, and
-              a selfie holding one of your IDs.
+              We verify every renter. Provide two valid government-issued IDs,
+              proof of billing, and the photos below. Images or PDFs are
+              accepted.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="id_document_1">Government ID #1</Label>
-              <Input
-                id="id_document_1"
-                name="id_document_1"
-                type="file"
-                accept="image/*,.pdf"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="id_document_2">Government ID #2</Label>
-              <Input
-                id="id_document_2"
-                name="id_document_2"
-                type="file"
-                accept="image/*,.pdf"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="proof_of_billing">Proof of Billing</Label>
-              <Input
-                id="proof_of_billing"
-                name="proof_of_billing"
-                type="file"
-                accept="image/*,.pdf"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="selfie_with_id">Selfie with ID</Label>
-              <Input
-                id="selfie_with_id"
-                name="selfie_with_id"
-                type="file"
-                accept="image/*"
-                required
-              />
-            </div>
+          <CardContent className="space-y-6">
+            <fieldset className="space-y-3 rounded-lg border p-4">
+              <legend className="px-2 text-sm font-medium">
+                Government ID #1
+              </legend>
+              <div className="space-y-2">
+                <Label htmlFor="id_number_1">ID Number</Label>
+                <Input id="id_number_1" name="id_number_1" required />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="id_document_1">Front Photo</Label>
+                <Input
+                  id="id_document_1"
+                  name="id_document_1"
+                  type="file"
+                  accept="image/*,.pdf"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="id_document_1_back">Back Photo</Label>
+                <Input
+                  id="id_document_1_back"
+                  name="id_document_1_back"
+                  type="file"
+                  accept="image/*,.pdf"
+                  required
+                />
+              </div>
+              </div>
+            </fieldset>
+            <fieldset className="space-y-3 rounded-lg border p-4">
+              <legend className="px-2 text-sm font-medium">
+                Government ID #2
+              </legend>
+              <div className="space-y-2">
+                <Label htmlFor="id_number_2">ID Number</Label>
+                <Input id="id_number_2" name="id_number_2" required />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="id_document_2">Front Photo</Label>
+                <Input
+                  id="id_document_2"
+                  name="id_document_2"
+                  type="file"
+                  accept="image/*,.pdf"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="id_document_2_back">Back Photo</Label>
+                <Input
+                  id="id_document_2_back"
+                  name="id_document_2_back"
+                  type="file"
+                  accept="image/*,.pdf"
+                  required
+                />
+              </div>
+              </div>
+            </fieldset>
+            <fieldset className="space-y-3 rounded-lg border p-4">
+              <legend className="px-2 text-sm font-medium">
+                Additional Verification
+              </legend>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="proof_of_billing">Proof of Billing</Label>
+                <Input
+                  id="proof_of_billing"
+                  name="proof_of_billing"
+                  type="file"
+                  accept="image/*,.pdf"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="selfie_with_id">Selfie with ID</Label>
+                <Input
+                  id="selfie_with_id"
+                  name="selfie_with_id"
+                  type="file"
+                  accept="image/*"
+                  required
+                />
+              </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="handwritten_note">Handwritten Note with IDs</Label>
+                <Input
+                  id="handwritten_note"
+                  name="handwritten_note"
+                  type="file"
+                  accept="image/*"
+                  required
+                />
+                <ul className="list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
+                  <li>
+                    On paper, handwrite your full name and &quot;The Memory
+                    Club&quot;.
+                  </li>
+                  <li>Sign it 3 times.</li>
+                  <li>
+                    Place the paper beside your 2 valid IDs and upload one photo
+                    of everything together.
+                  </li>
+                </ul>
+              </div>
+            </fieldset>
+            {tripType === "international" && (
+              <fieldset className="space-y-3 rounded-lg border p-4">
+                <legend className="px-2 text-sm font-medium">
+                  Travel Documents
+                </legend>
+                <div className="space-y-2">
+                  <Label htmlFor="travel_documents">E-tickets, bookings or itinerary</Label>
+                  <Input
+                  id="travel_documents"
+                  name="travel_documents"
+                  type="file"
+                  accept="image/*,.pdf"
+                multiple
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Required for international trips. You can select multiple files.</p>
+                </div>
+              </fieldset>
+            )}
           </CardContent>
         </Card>
 

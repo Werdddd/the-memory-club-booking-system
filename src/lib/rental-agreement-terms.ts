@@ -87,11 +87,11 @@ export const RENTAL_AGREEMENT_SECTIONS: AgreementSection[] = [
       },
       {
         type: "p",
-        text: "All documentation must be completed and sent to The Memory Club within one (1) hour from the time the equipment is received, and before the equipment is used. Any existing issue must be clearly documented and reported within this period.",
+        text: "All documentation must be completed and sent to The Memory Club within 30 minutes from the time the equipment is received, and before the equipment is used. Any existing issue must be clearly documented and reported within this period.",
       },
       {
         type: "p",
-        text: "Failure to submit the required documentation within the one (1) hour period may affect the assessment of any damage discovered upon the equipment's return.",
+        text: "Failure to submit the required documentation within the 30 minutes period may affect the assessment of any damage discovered upon the equipment's return.",
       },
     ],
   },
